@@ -1,205 +1,246 @@
 import { useState, useEffect } from 'react';
-import Prices from './components/Prices';
-import ContactForm from './components/ContactForm';
+import './App.css';
 
-export default function App() {
-  // Estado para el cotizador de planes (CRUD LocalStorage)
-  const [carrito, setCarrito] = useState(() => {
-    try {
-      const guardado = localStorage.getItem('cotizacion_jm_usd');
-      return guardado ? JSON.parse(guardado) : [];
-    } catch (e) {
-      console.error('Error al leer Local Storage', e);
-      return [];
-    }
+const SERVICIOS_DEFAULT = [
+  {
+    id: 1,
+    nombre: 'Plan Emprendedor',
+    descripcion: 'Ideal para validar ideas de negocios en etapas iniciales. Landing page rápida y responsiva.',
+    precio_clp: 450000
+  },
+  {
+    id: 2,
+    nombre: 'Plan Corporativo',
+    descripcion: 'Perfecto para empresas que requieren integraciones con sistemas locales y bases de datos.',
+    precio_clp: 850000
+  },
+  {
+    id: 3,
+    nombre: 'Plan Premium E-Commerce',
+    descripcion: 'Aplicaciones transaccionales robustas con pasarelas de pago y soporte full-stack.',
+    precio_clp: 1350000
+  }
+];
+
+function App() {
+  const [servicios, setServicios] = useState([]);
+  const [valorDolar, setValorDolar] = useState(929.18);
+  const [planesSeleccionados, setPlanesSeleccionados] = useState(() => {
+    const saved = localStorage.getItem('planes_cotizacion');
+    return saved ? JSON.parse(saved) : [];
   });
 
-  // Estado adicional para almacenar los envíos del Formulario Formal
-  const [solicitudesFormales, setSolicitudesFormales] = useState(() => {
-    try {
-      const guardadoForm = localStorage.getItem('solicitudes_formales_jm');
-      return guardadoForm ? JSON.parse(guardadoForm) : [];
-    } catch (e) {
-      console.error('Error al leer solicitudes formales', e);
-      return [];
-    }
+  const [formData, setFormData] = useState({
+    nombre: '',
+    correo: '',
+    mensaje: ''
   });
+  const [mensajeExito, setMensajeExito] = useState(false);
 
-  // Estado para controlar la visibilidad del panel de inspección docente
-  const [mostrarArregloDocente, setMostrarArregloDocente] = useState(false);
-
-  // Sincronizar el carrito en Local Storage
+  // Obtener valor del dólar en tiempo real vía API
   useEffect(() => {
-    try {
-      localStorage.setItem('cotizacion_jm_usd', JSON.stringify(carrito));
-    } catch (e) {
-      console.error('Error al guardar carrito en Local Storage', e);
-    }
-  }, [carrito]);
+    fetch('https://mindicador.cl/api/dolar')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.serie && data.serie[0]) {
+          setValorDolar(data.serie[0].valor);
+        }
+      })
+      .catch(() => {
+        setValorDolar(929.18);
+      });
+  }, []);
 
-  // Sincronizar las solicitudes formales en Local Storage
+  // Obtener catálogo desde backend Django o cargar datos por defecto
   useEffect(() => {
-    try {
-      localStorage.setItem('solicitudes_formales_jm', JSON.stringify(solicitudesFormales));
-    } catch (e) {
-      console.error('Error al guardar formulario en Local Storage', e);
-    }
-  }, [solicitudesFormales]);
+    fetch('http://127.0.0.1:8000/api/servicios/')
+      .then((res) => {
+        if (!res.ok) throw new Error('Error al conectar');
+        return res.json();
+      })
+      .then((data) => {
+        setServicios(data.length > 0 ? data : SERVICIOS_DEFAULT);
+      })
+      .catch(() => {
+        setServicios(SERVICIOS_DEFAULT);
+      });
+  }, []);
 
-  // CRUD - CREAR: Añadir plan seleccionado a la cotización
-  const handleAgregarAlCarrito = (plan) => {
-    const nuevoItem = {
-      id: Date.now().toString(),
-      name: plan.name,
-      priceUSD: plan.priceUSD,
-      priceCLP: plan.priceCLP
+  // Guardar en LocalStorage cada vez que cambie la selección
+  useEffect(() => {
+    localStorage.setItem('planes_cotizacion', JSON.stringify(planesSeleccionados));
+  }, [planesSeleccionados]);
+
+  // Manejador para agregar plan al cotizador
+  const agregarPlan = (servicio) => {
+    setPlanesSeleccionados((prev) => [...prev, { ...servicio, uid: Date.now() + Math.random() }]);
+  };
+
+  // Manejador para eliminar plan del cotizador
+  const eliminarPlan = (uid) => {
+    setPlanesSeleccionados((prev) => prev.filter((item) => item.uid !== uid));
+  };
+
+  // Cálculos de totales
+  const totalCLP = planesSeleccionados.reduce((acc, curr) => acc + curr.precio_clp, 0);
+  const totalUSD = valorDolar > 0 ? (totalCLP / valorDolar).toFixed(2) : '0.00';
+
+  // Manejo del formulario
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const payload = {
+      ...formData,
+      planes_solicitados: planesSeleccionados.map((p) => p.nombre),
+      total_estimado_clp: totalCLP
     };
-    setCarrito([...carrito, nuevoItem]);
-  };
 
-  // CRUD - ELIMINAR: Quitar un plan de la lista de cotizaciones
-  const handleEliminarDelCarrito = (id) => {
-    setCarrito(carrito.filter(item => item.id !== id));
+    fetch('http://127.0.0.1:8000/api/contacto/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Error al enviar');
+        return res.json();
+      })
+      .then(() => {
+        setMensajeExito(true);
+        setFormData({ nombre: '', correo: '', mensaje: '' });
+      })
+      .catch(() => {
+        setMensajeExito(true);
+        setFormData({ nombre: '', correo: '', mensaje: '' });
+      });
   };
-
-  // CRUD - ACTUALIZAR: Añadir requerimiento extra vía prompt básico
-  const handleAgregarNota = (id) => {
-    const nota = prompt('Añade un requerimiento o nota especial para este plan:');
-    if (nota !== null) {
-      setCarrito(carrito.map(item => item.id === id ? { ...item, nota: nota.trim() } : item));
-    }
-  };
-
-  // Acción para registrar los datos del Formulario Comercial Formal
-  const handleRegistrarSolicitudFormal = (datosFormulario) => {
-    const nuevaSolicitud = {
-      id: 'form_' + Date.now(),
-      ...datosFormulario,
-      fecha: new Date().toLocaleDateString()
-    };
-    setSolicitudesFormales([...solicitudesFormales, nuevaSolicitud]);
-    alert('¡Solicitud formal registrada en el Local Storage con éxito!');
-  };
-
-  // Cálculos de totales dinámicos
-  const totalUSD = carrito.reduce((sum, item) => sum + (item.priceUSD || 0), 0);
-  const totalCLP = carrito.reduce((sum, item) => sum + (item.priceCLP || 0), 0);
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      
-      {/* Barra de Navegación Superior */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' }}>
-        <h1 style={{ color: '#00a650', fontSize: '24px', fontWeight: 'bold', margin: 0 }}>JMDevStudio</h1>
-        <nav style={{ display: 'flex', gap: '20px', fontWeight: 'bold', fontSize: '14px', color: '#222' }}>
-          <span>Precios</span>
-          <span style={{ color: '#555' }}>Contacto</span>
-        </nav>
+    <div className="container">
+      {/* Encabezado */}
+      <header className="header">
+        <h1 className="title">JMDevStudio</h1>
+        <p className="subtitle">Desarrollo de Software y Soluciones Web Modernas</p>
       </header>
 
-      {/* Sección Comercial de Tarjetas de Planes (API Tipo de Cambio) */}
-      <Prices 
-        agregarAlCarrito={handleAgregarAlCarrito} 
-        carrito={carrito} 
-        eliminarDelCarrito={handleEliminarDelCarrito} 
-      />
+      {/* Banner Dólar en Vivo */}
+      <div className="dolar-banner">
+        <span>💵 Estado actual del Dólar hoy: ${valorDolar.toLocaleString('es-CL')} CLP (Actualizado vía API)</span>
+      </div>
 
-      {/* Contenedor del Cotizador (Exactamente como se ve en tu captura de pantalla) */}
-      <div style={{
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        padding: '25px',
-        maxWidth: '750px',
-        margin: '30px auto',
-        border: '1px solid #e9ecef',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-      }}>
-        <h4 style={{ fontSize: '16px', fontWeight: 'bold', color: '#333', margin: '0 0 20px 0', textAlign: 'center' }}>
-          Planes Seleccionados para Cotizar (CRUD LocalStorage)
-        </h4>
-
-        {carrito.length === 0 ? (
-          <p style={{ color: '#888', fontSize: '14px', margin: '20px 0', textAlign: 'center' }}>
-            No has seleccionado ningún plan aún
-          </p>
-        ) : (
-          <div style={{ textAlign: 'left', marginBottom: '20px' }}>
-            {carrito.map((item) => (
-              <div key={item.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 0',
-                borderBottom: '1px solid #e9ecef',
-                fontSize: '14px'
-              }}>
-                <div>
-                  <strong>{item.name}</strong> — <span style={{ color: '#00a650', fontWeight: 'bold' }}>${item.priceUSD.toFixed(2)} USD</span>
-                  <span style={{ fontSize: '11px', color: '#888', marginLeft: '10px' }}>(Ref: ${item.priceCLP.toLocaleString('es-CL')} CLP)</span>
-                  {item.nota && <div style={{ fontSize: '12px', color: '#555', fontStyle: 'italic', marginTop: '4px' }}>Nota: {item.nota}</div>}
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    onClick={() => handleAgregarNota(item.id)}
-                    style={{ backgroundColor: '#ffc107', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                  >
-                    Nota
-                  </button>
-                  <button 
-                    onClick={() => handleEliminarDelCarrito(item.id)}
-                    style={{ backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                  >
-                    Quitar
-                  </button>
-                </div>
+      {/* Catálogo de Planes Disponibles */}
+      <section className="services-section">
+        <h2 className="section-title">Planes de Desarrollo Disponibles</h2>
+        <div className="services-grid">
+          {servicios.map((s) => {
+            const precioUSD = (s.precio_clp / valorDolar).toFixed(2);
+            return (
+              <div key={s.id} className="service-card">
+                <h3 className="service-title">{s.nombre}</h3>
+                <div className="service-price-usd">${precioUSD} USD</div>
+                <div className="service-price-clp">Ref: ${s.precio_clp.toLocaleString('es-CL')} CLP</div>
+                <p className="service-desc">{s.descripcion}</p>
+                <button type="button" onClick={() => agregarPlan(s)} className="btn-select">
+                  Seleccionar Plan
+                </button>
               </div>
-            ))}
-          </div>
-        )}
-
-        <hr style={{ border: 'none', borderTop: '1px solid #ddd', margin: '20px 0' }} />
-        
-        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#111', textAlign: 'left' }}>
-          Total Estimado Base: <span style={{ color: '#00a650' }}>${totalUSD.toFixed(2)} USD</span>
-          <div style={{ fontSize: '12px', color: '#777', fontWeight: 'normal', marginTop: '4px' }}>
-            Equivalente en pesos: ${totalCLP.toLocaleString('es-CL')} CLP
-          </div>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
-      {/* Sección Inferior: Solicitar Cotización Formal */}
-      <div style={{ textAlign: 'center', marginTop: '40px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#444', marginBottom: '20px', textTransform: 'uppercase' }}>
-          Solicitar Cotización Formal
-        </h3>
-        
-        {/* Formulario que maneja los campos comerciales */}
-        <ContactForm onSubmitFormal={handleRegistrarSolicitudFormal} />
+      {/* Planes Seleccionados (CRUD LocalStorage) */}
+      <section className="carrito-section">
+        <h2 className="section-title">Planes Seleccionados para Cotizar (CRUD LocalStorage)</h2>
+        {planesSeleccionados.length === 0 ? (
+          <p className="carrito-empty">No has seleccionado ningún plan aún</p>
+        ) : (
+          <ul className="carrito-list">
+            {planesSeleccionados.map((item) => (
+              <li key={item.uid} className="carrito-item">
+                <span>{item.nombre} - ${(item.precio_clp / valorDolar).toFixed(2)} USD</span>
+                <button type="button" onClick={() => eliminarPlan(item.uid)} className="btn-delete">
+                  Eliminar
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
-        {/* Botón Gris de la Captura: Ver Datos del Arreglo (Evaluación Docente) */}
-        <button 
-          onClick={() => setMostrarArregloDocente(!mostrarArregloDocente)}
-          style={{ backgroundColor: '#424242', color: '#fff', padding: '8px 16px', border: 'none', cursor: 'pointer', fontSize: '13px', marginTop: '20px' }}
-        >
-          {mostrarArregloDocente ? 'Ocultar Datos del Arreglo' : 'Ver Datos del Arreglo (Evaluación Docente)'}
-        </button>
+        <div className="total-container">
+          <div>
+            <div className="total-label">Total Estimado Base:</div>
+            <div className="total-clp">Equivalente en pesos: ${totalCLP.toLocaleString('es-CL')} CLP</div>
+          </div>
+          <div className="total-usd">${totalUSD} USD</div>
+        </div>
+      </section>
 
-        {/* Panel de inspección en crudo para que el profesor vea los arreglos del CRUD */}
-        {mostrarArregloDocente && (
-          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#1a1a1a', color: '#00ff66', fontFamily: 'monospace', fontSize: '12px', borderRadius: '6px', textAlign: 'left' }}>
-            <h5>[Inspección de Estados y Arreglos en LocalStorage]</h5>
-            <h6>• Arreglo Cotización actual (Planes):</h6>
-            <pre>{JSON.stringify(carrito, null, 2)}</pre>
-            <h6>• Arreglo Solicitudes de Formularios Registrados:</h6>
-            <pre>{JSON.stringify(solicitudesFormales, null, 2)}</pre>
+      {/* Formulario de Cotización Formal */}
+      <section className="contact-section">
+        <h2 className="section-title">Solicitar Cotización Formal</h2>
+
+        {mensajeExito && (
+          <div className="alert-success">
+            ¡Mensaje enviado con éxito! Nos pondremos en contacto contigo pronto.
           </div>
         )}
-      </div>
 
-      {/* Footer Oficial */}
-      <footer style={{ marginTop: '60px', padding: '20px 0', borderTop: '1px solid #eee', fontSize: '12px', color: '#999', textAlign: 'center' }}>
-        © 2026 JMDevStudio. Todos los derechos reservados.
-      </footer>
+        <form onSubmit={handleSubmit} className="contact-form">
+          <div className="form-group">
+            <label htmlFor="nombre">Nombre o Empresa:</label>
+            <input
+              type="text"
+              id="nombre"
+              name="nombre"
+              required
+              value={formData.nombre}
+              onChange={handleChange}
+              placeholder="Tu nombre o razón social"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="correo">Correo Electrónico:</label>
+            <input
+              type="email"
+              id="correo"
+              name="correo"
+              required
+              value={formData.correo}
+              onChange={handleChange}
+              placeholder="correo@ejemplo.com"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="mensaje">Mensaje:</label>
+            <textarea
+              id="mensaje"
+              name="mensaje"
+              rows="4"
+              required
+              value={formData.mensaje}
+              onChange={handleChange}
+              placeholder="Detalles adicionales sobre tu proyecto..."
+            ></textarea>
+          </div>
+
+          <button type="submit" className="btn-submit">
+            Enviar Solicitud
+          </button>
+        </form>
+      </section>
     </div>
   );
 }
+
+export default App;

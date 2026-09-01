@@ -1,261 +1,257 @@
-/* ==========================================================================
-   ESTILOS GENERALES Y CONFIGURACIÓN BASE (Arial 12 - Calidad del Código)
-   ========================================================================== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, sans-serif;
-}
-
-body {
-    background-color: #ffffff;
-    color: #333333;
-    font-size: 12px; /* Ajustado estrictamente a tamaño 12 según requerimiento */
-}
-
-/* Contenedor principal de la Single Page Application */
-.app-container {
-    padding: 20px;
-    max-width: 1200px;
+.container {
+    max-width: 1100px;
     margin: 0 auto;
-}
-
-/* ==========================================================================
-   BARRA DE NAVEGACIÓN
-   ========================================================================== */
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-    background-color: #ffffff;
-    border-bottom: 1px solid #e0e0e0;
-    margin-bottom: 30px;
-}
-
-header h1 {
-    font-size: 24px;
-    font-weight: bold;
-    color: #00a859;
-}
-
-/* ==========================================================================
-   SECCIONES Y LAYOUT MATRICIAL (GRID RESPONSIVO)
-   ========================================================================== */
-section {
-    padding: 40px 0;
+    padding: 2rem 1rem;
+  }
+  
+  /* Header */
+  .header {
     text-align: center;
-}
-
-section h5 {
-    font-size: 24px;
-    color: #333333;
-    margin-bottom: 40px;
+    margin-bottom: 2rem;
+  }
+  
+  .title {
+    color: #00f2fe;
+    text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+    margin-bottom: 0.5rem;
+  }
+  
+  .subtitle {
+    color: #94a3b8;
+  }
+  
+  /* Banner Indicador Dólar */
+  .dolar-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #111827;
+    border: 1px solid #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    max-width: 500px;
+    margin: 0 auto 2.5rem auto;
+    color: #00ff88;
     font-weight: bold;
-}
-
-.grid-container {
+  }
+  
+  /* Secciones Generales */
+  .services-section,
+  .carrito-section {
+    margin-bottom: 3.5rem;
+  }
+  
+  .section-title {
+    color: #ff007f;
+    text-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  
+  /* Grid de Tarjetas de Servicios */
+  .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 30px;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-/* ==========================================================================
-   TARJETAS DE PRECIOS - EFECTO MULTICAPA NEÓN NEGRO HOMOGÉNEO
-   ========================================================================== */
-.price-card {
-    background-color: #ffffff;
-    border: 1px solid #e0e0e0;
-    padding: 45px 35px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .service-card {
+    background-color: #111827;
+    border: 1px solid #00f2fe;
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.15);
     border-radius: 8px;
-    /* Aplicado el neón negro multicapa exacto de tu diseño original */
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.35), 0 0 30px rgba(0, 0, 0, 0.20), 0 0 45px rgba(0, 0, 0, 0.10);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     text-align: center;
-}
-
-.price-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0 25px rgba(0, 0, 0, 0.55), 0 0 45px rgba(0, 0, 0, 0.35);
-}
-
-.icono-precio {
-    font-size: 32px;
-    color: #00a859;
-    margin-bottom: 15px;
-}
-
-.price-card h5 {
-    font-size: 20px;
+  }
+  
+  .service-title {
+    color: #00f2fe;
+    margin-bottom: 0.75rem;
+    font-size: 14pt;
+  }
+  
+  .service-price-usd {
+    color: #00ff88;
+    font-size: 16pt;
     font-weight: bold;
-    color: #111111;
-    margin-bottom: 15px;
-}
-
-.precio {
-    font-size: 26px;
-    font-weight: bold;
-    color: #00a859;
-    margin: 15px 0;
-}
-
-.descripcion-plan {
-    font-size: 12px;
-    color: #222222;
-    line-height: 1.6;
-    margin-bottom: 20px;
-}
-
-/* Botones del sistema técnico */
-.btn {
-    display: inline-block;
-    background-color: #00a859;
-    color: #ffffff;
-    text-decoration: none;
-    padding: 14px 35px;
-    font-size: 12px;
-    font-weight: bold;
-    border-radius: 5px;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+    margin-top: 0.5rem;
+  }
+  
+  .service-price-clp {
+    color: #94a3b8;
+    font-size: 10pt;
+    margin-bottom: 1rem;
+  }
+  
+  .service-desc {
+    color: #cbd5e1;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+    line-height: 1.4;
+  }
+  
+  /* Botones */
+  .btn-select {
+    background-color: #00ff88;
+    color: #0b0f19;
     border: none;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    box-shadow: 0 4px 15px rgba(0, 168, 89, 0.4);
+    padding: 0.75rem 1rem;
+    font-weight: bold;
+    border-radius: 4px;
     cursor: pointer;
-}
-
-.btn:hover {
-    background-color: #008744;
-    transform: translateY(-2px);
-}
-
-.btn-add {
-    margin-top: 20px;
-    font-size: 12px;
-    padding: 12px 20px;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    transition: background-color 0.2s ease, transform 0.1s ease;
     width: 100%;
-}
-
-/* ==========================================================================
-   CONTENEDOR DINÁMICO DEL CARRITO DE COMPRAS (CRUD LOCALSTORAGE)
-   ========================================================================== */
-#seccion-carrito {
-    margin-top: 40px;
-    max-width: 600px;
+  }
+  
+  .btn-select:hover {
+    background-color: #00cc6a;
+    transform: translateY(-2px);
+  }
+  
+  /* Sección Resumen / Cotizador */
+  .carrito-section {
+    background-color: #111827;
+    border: 1px solid #00f2fe;
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.15);
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 650px;
     margin-left: auto;
     margin-right: auto;
-    background-color: #f9f9f9;
-    padding: 25px;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    text-align: left;
-}
-
-#seccion-carrito h6 {
-    font-size: 16px;
-    color: #333333;
-    margin-bottom: 15px;
-    font-weight: bold;
-}
-
-#lista-carrito {
+  }
+  
+  .carrito-list {
     list-style: none;
-    padding: 0;
-    margin-bottom: 15px;
-}
-
-#carrito-vacio {
-    color: #888888;
-    font-size: 12px;
-    text-align: center;
-    padding: 10px 0;
-}
-
-.total-contenedor {
+    margin-bottom: 1.5rem;
+  }
+  
+  .carrito-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 2px solid #e0e0e0;
-    padding-top: 15px;
-    font-size: 16px;
-    font-weight: bold;
-    color: #333333;
-}
-
-/* ==========================================================================
-   FORMULARIO DE CONTACTO Y CONSOLA DE EVALUACIÓN
-   ========================================================================== */
-.contact form {
-    max-width: 550px;
-    margin: 0 auto;
-    text-align: left;
-    background-color: #f9f9f9;
-    padding: 40px;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-}
-
-.contact label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 8px;
-    font-size: 12px;
-    color: #333333;
-}
-
-.contact input, .contact textarea {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 20px;
-    border: 1px solid #cccccc;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #1f2937;
+  }
+  
+  .btn-delete {
+    background: transparent;
+    border: 1px solid #ff007f;
+    color: #ff007f;
+    padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    font-size: 12px;
-    color: #222222;
-}
-
-.contact textarea {
-    height: 120px;
-    resize: vertical;
-}
-
-.contact .btn {
+    cursor: pointer;
+    font-size: 10pt;
+  }
+  
+  .btn-delete:hover {
+    background-color: rgba(255, 0, 127, 0.1);
+  }
+  
+  .carrito-empty {
+    color: #64748b;
+    text-align: center;
+    padding: 1rem 0;
+  }
+  
+  .total-container {
+    border-top: 1px solid #334155;
+    padding-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .total-label {
+    font-weight: bold;
+    color: #f1f5f9;
+  }
+  
+  .total-usd {
+    color: #00ff88;
+    font-size: 14pt;
+    font-weight: bold;
+    text-shadow: 0 0 6px rgba(0, 255, 136, 0.4);
+  }
+  
+  .total-clp {
+    color: #94a3b8;
+    font-size: 10pt;
+  }
+  
+  /* Sección Contacto */
+  .contact-section {
+    background-color: #111827;
+    border: 1px solid #ff007f;
+    box-shadow: 0 0 12px rgba(255, 0, 127, 0.15);
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .form-group label {
+    color: #00f2fe;
+  }
+  
+  .form-group input,
+  .form-group textarea {
+    background-color: #0b0f19;
+    border: 1px solid #334155;
+    color: #f1f5f9;
+    padding: 0.6rem;
+    border-radius: 4px;
+    outline: none;
+  }
+  
+  .form-group input:focus,
+  .form-group textarea:focus {
+    border-color: #00f2fe;
+    box-shadow: 0 0 5px rgba(0, 242, 254, 0.5);
+  }
+  
+  .btn-submit {
+    background-color: #00ff88;
+    color: #0b0f19;
+    border: none;
+    padding: 0.75rem;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+    margin-top: 0.5rem;
     width: 100%;
-}
-
-/* Vista de Consola de Depuración */
-#contenedor-consola {
-    margin-top: 15px;
-    text-align: left;
-    max-width: 550px;
-    margin-left: auto;
-    margin-right: auto;
-    background: #222222;
-    color: #00ff00;
-    font-family: monospace;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: inset 0 0 10px #000000;
-}
-
-#contenedor-consola h6 {
-    color: #00ff00;
-    font-size: 12px;
-    margin-bottom: 5px;
-    border-bottom: 1px solid #333333;
-    padding-bottom: 5px;
-}
-
-/* ==========================================================================
-   RESPONSIVIDAD (MEDIA QUERIES)
-   ========================================================================== */
-@media (max-width: 768px) {
-    header {
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    section {
-        padding: 40px 20px;
-    }
-}
+  }
+  
+  .btn-submit:hover {
+    background-color: #00cc6a;
+  }
+  
+  .alert-success {
+    background-color: rgba(0, 255, 136, 0.1);
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    padding: 0.75rem;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
