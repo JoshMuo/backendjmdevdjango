@@ -1,33 +1,58 @@
-import { useState, useEffect } from 'react';
+import {
+  BrowserRouter,
+  Link,
+  Route,
+  Routes,
+  useParams
+} from 'react-router-dom';
+
+import {
+  useEffect,
+  useState
+} from 'react';
+
 import './App.css';
 
-const SERVICIOS_DEFAULT = [
-  {
-    id: 1,
-    nombre: 'Plan Emprendedor',
-    descripcion: 'Ideal para validar ideas de negocios en etapas iniciales. Landing page rápida y responsiva.',
-    precio_clp: 450000
-  },
-  {
-    id: 2,
-    nombre: 'Plan Corporativo',
-    descripcion: 'Perfecto para empresas que requieren integraciones con sistemas locales y bases de datos.',
-    precio_clp: 850000
-  },
-  {
-    id: 3,
-    nombre: 'Plan Premium E-Commerce',
-    descripcion: 'Aplicaciones transaccionales robustas con pasarelas de pago y soporte full-stack.',
-    precio_clp: 1350000
-  }
-];
 
-function App() {
+function Navegacion() {
+  return (
+    <nav className="nav">
+      <Link
+        className="nav-link"
+        to="/"
+      >
+        Inicio
+      </Link>
+
+      <Link
+        className="nav-link"
+        to="/solicitudes"
+      >
+        Solicitudes
+      </Link>
+    </nav>
+  );
+}
+
+
+function Inicio() {
   const [servicios, setServicios] = useState([]);
   const [valorDolar, setValorDolar] = useState(929.18);
+
   const [planesSeleccionados, setPlanesSeleccionados] = useState(() => {
-    const saved = localStorage.getItem('planes_cotizacion');
-    return saved ? JSON.parse(saved) : [];
+    const guardados = localStorage.getItem(
+      'planes_cotizacion'
+    );
+
+    if (!guardados) {
+      return [];
+    }
+
+    try {
+      return JSON.parse(guardados);
+    } catch {
+      return [];
+    }
   });
 
   const [formData, setFormData] = useState({
@@ -35,15 +60,25 @@ function App() {
     correo: '',
     mensaje: ''
   });
+
   const [mensajeExito, setMensajeExito] = useState(false);
 
-  // Obtener valor del dólar en tiempo real vía API
+
   useEffect(() => {
-    fetch('https://mindicador.cl/api/dolar')
-      .then((res) => res.json())
+    fetch(
+      'https://mindicador.cl/api/dolar'
+    )
+      .then((respuesta) =>
+        respuesta.json()
+      )
       .then((data) => {
-        if (data.serie && data.serie[0]) {
-          setValorDolar(data.serie[0].valor);
+        if (
+          data.serie &&
+          data.serie.length > 0
+        ) {
+          setValorDolar(
+            data.serie[0].valor
+          );
         }
       })
       .catch(() => {
@@ -51,196 +86,696 @@ function App() {
       });
   }, []);
 
-  // Obtener catálogo desde backend Django o cargar datos por defecto
+
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/servicios/')
-      .then((res) => {
-        if (!res.ok) throw new Error('Error al conectar');
-        return res.json();
+    fetch('/api/planes/')
+      .then((respuesta) => {
+        if (!respuesta.ok) {
+          throw new Error(
+            'Error cargando planes'
+          );
+        }
+
+        return respuesta.json();
       })
       .then((data) => {
-        setServicios(data.length > 0 ? data : SERVICIOS_DEFAULT);
+        setServicios(data);
       })
-      .catch(() => {
-        setServicios(SERVICIOS_DEFAULT);
+      .catch((error) => {
+        console.error(error);
+        setServicios([]);
       });
   }, []);
 
-  // Guardar en LocalStorage cada vez que cambie la selección
+
   useEffect(() => {
-    localStorage.setItem('planes_cotizacion', JSON.stringify(planesSeleccionados));
+    localStorage.setItem(
+      'planes_cotizacion',
+      JSON.stringify(
+        planesSeleccionados
+      )
+    );
   }, [planesSeleccionados]);
 
-  // Manejador para agregar plan al cotizador
+
   const agregarPlan = (servicio) => {
-    setPlanesSeleccionados((prev) => [...prev, { ...servicio, uid: Date.now() + Math.random() }]);
+    setPlanesSeleccionados(
+      (anteriores) => [
+        ...anteriores,
+        {
+          ...servicio,
+          uid: `${servicio.id}-${Date.now()}-${Math.random()}`
+        }
+      ]
+    );
   };
 
-  // Manejador para eliminar plan del cotizador
+
   const eliminarPlan = (uid) => {
-    setPlanesSeleccionados((prev) => prev.filter((item) => item.uid !== uid));
+    setPlanesSeleccionados(
+      (anteriores) =>
+        anteriores.filter(
+          (plan) =>
+            plan.uid !== uid
+        )
+    );
   };
 
-  // Cálculos de totales
-  const totalCLP = planesSeleccionados.reduce((acc, curr) => acc + curr.precio_clp, 0);
-  const totalUSD = valorDolar > 0 ? (totalCLP / valorDolar).toFixed(2) : '0.00';
 
-  // Manejo del formulario
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const totalCLP =
+    planesSeleccionados.reduce(
+      (total, plan) =>
+        total +
+        Number(
+          plan.precio_clp || 0
+        ),
+      0
+    );
+
+
+  const totalUSD =
+    valorDolar > 0
+      ? (
+          totalCLP /
+          valorDolar
+        ).toFixed(2)
+      : '0.00';
+
+
+  const handleChange = (evento) => {
+    const {
+      name,
+      value
+    } = evento.target;
+
+    setFormData(
+      (anterior) => ({
+        ...anterior,
+        [name]: value
+      })
+    );
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+
+  const handleSubmit = async (
+    evento
+  ) => {
+    evento.preventDefault();
 
     const payload = {
-      ...formData,
-      planes_solicitados: planesSeleccionados.map((p) => p.nombre),
-      total_estimado_clp: totalCLP
+      nombre: formData.nombre,
+      correo: formData.correo,
+      mensaje: formData.mensaje,
+
+      planes_solicitados:
+        planesSeleccionados.map(
+          (plan) =>
+            plan.nombre
+        ),
+
+      total_estimado_clp:
+        totalCLP
     };
 
-    fetch('http://127.0.0.1:8000/api/contacto/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Error al enviar');
-        return res.json();
-      })
-      .then(() => {
-        setMensajeExito(true);
-        setFormData({ nombre: '', correo: '', mensaje: '' });
-      })
-      .catch(() => {
-        setMensajeExito(true);
-        setFormData({ nombre: '', correo: '', mensaje: '' });
+    try {
+      const respuesta =
+        await fetch(
+          '/api/contacto/',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body: JSON.stringify(
+              payload
+            )
+          }
+        );
+
+      if (!respuesta.ok) {
+        throw new Error(
+          'Error enviando solicitud'
+        );
+      }
+
+      setMensajeExito(true);
+
+      setFormData({
+        nombre: '',
+        correo: '',
+        mensaje: ''
       });
+
+      setPlanesSeleccionados([]);
+
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        'No se pudo enviar la solicitud.'
+      );
+    }
   };
 
+
   return (
-    <div className="container">
-      {/* Encabezado */}
+    <>
       <header className="header">
-        <h1 className="title">JMDevStudio</h1>
-        <p className="subtitle">Desarrollo de Software y Soluciones Web Modernas</p>
+        <h1 className="title">
+          JMDevStudio
+        </h1>
+
+        <p className="subtitle">
+          Desarrollo de Software y
+          Soluciones Web Modernas
+        </p>
       </header>
 
-      {/* Banner Dólar en Vivo */}
+
       <div className="dolar-banner">
-        <span>💵 Estado actual del Dólar hoy: ${valorDolar.toLocaleString('es-CL')} CLP (Actualizado vía API)</span>
+        💵 Estado actual del Dólar hoy: $
+        {valorDolar.toLocaleString(
+          'es-CL'
+        )}{' '}
+        CLP
       </div>
 
-      {/* Catálogo de Planes Disponibles */}
-      <section className="services-section">
-        <h2 className="section-title">Planes de Desarrollo Disponibles</h2>
+
+      <section className="section">
+        <h2 className="section-title">
+          Planes de Desarrollo Disponibles
+        </h2>
+
         <div className="services-grid">
-          {servicios.map((s) => {
-            const precioUSD = (s.precio_clp / valorDolar).toFixed(2);
-            return (
-              <div key={s.id} className="service-card">
-                <h3 className="service-title">{s.nombre}</h3>
-                <div className="service-price-usd">${precioUSD} USD</div>
-                <div className="service-price-clp">Ref: ${s.precio_clp.toLocaleString('es-CL')} CLP</div>
-                <p className="service-desc">{s.descripcion}</p>
-                <button type="button" onClick={() => agregarPlan(s)} className="btn-select">
-                  Seleccionar Plan
-                </button>
-              </div>
-            );
-          })}
+          {servicios.map(
+            (servicio) => {
+              const precioCLP =
+                Number(
+                  servicio.precio_clp ||
+                    0
+                );
+
+              const precioUSD =
+                valorDolar > 0
+                  ? (
+                      precioCLP /
+                      valorDolar
+                    ).toFixed(2)
+                  : '0.00';
+
+              return (
+                <article
+                  key={servicio.id}
+                  className="card"
+                >
+                  <h3>
+                    {servicio.nombre}
+                  </h3>
+
+                  <div className="usd">
+                    ${precioUSD} USD
+                  </div>
+
+                  <p>
+                    $
+                    {precioCLP.toLocaleString(
+                      'es-CL'
+                    )}{' '}
+                    CLP
+                  </p>
+
+                  <p>
+                    {
+                      servicio.caracteristicas
+                    }
+                  </p>
+
+                  <p>
+                    Categoría:{' '}
+                    {
+                      servicio.categoria
+                    }
+                  </p>
+
+                  <button
+                    className="button"
+                    type="button"
+                    onClick={() =>
+                      agregarPlan(
+                        servicio
+                      )
+                    }
+                  >
+                    Seleccionar Plan
+                  </button>
+                </article>
+              );
+            }
+          )}
         </div>
       </section>
 
-      {/* Planes Seleccionados (CRUD LocalStorage) */}
-      <section className="carrito-section">
-        <h2 className="section-title">Planes Seleccionados para Cotizar (CRUD LocalStorage)</h2>
-        {planesSeleccionados.length === 0 ? (
-          <p className="carrito-empty">No has seleccionado ningún plan aún</p>
+
+      <section className="section panel">
+        <h2 className="section-title">
+          Planes seleccionados
+        </h2>
+
+        {planesSeleccionados.length ===
+        0 ? (
+          <p>
+            No has seleccionado
+            ningún plan aún.
+          </p>
         ) : (
-          <ul className="carrito-list">
-            {planesSeleccionados.map((item) => (
-              <li key={item.uid} className="carrito-item">
-                <span>{item.nombre} - ${(item.precio_clp / valorDolar).toFixed(2)} USD</span>
-                <button type="button" onClick={() => eliminarPlan(item.uid)} className="btn-delete">
-                  Eliminar
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+          <>
+            {planesSeleccionados.map(
+              (plan) => (
+                <div
+                  key={plan.uid}
+                  className="selected-plan"
+                >
+                  <span>
+                    {plan.nombre}
+                  </span>
 
-        <div className="total-container">
-          <div>
-            <div className="total-label">Total Estimado Base:</div>
-            <div className="total-clp">Equivalente en pesos: ${totalCLP.toLocaleString('es-CL')} CLP</div>
-          </div>
-          <div className="total-usd">${totalUSD} USD</div>
-        </div>
+                  <button
+                    className="delete-button"
+                    type="button"
+                    onClick={() =>
+                      eliminarPlan(
+                        plan.uid
+                      )
+                    }
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              )
+            )}
+
+            <h3>
+              Total: $
+              {totalCLP.toLocaleString(
+                'es-CL'
+              )}{' '}
+              CLP
+            </h3>
+
+            <p>
+              Aproximadamente $
+              {totalUSD} USD
+            </p>
+          </>
+        )}
       </section>
 
-      {/* Formulario de Cotización Formal */}
-      <section className="contact-section">
-        <h2 className="section-title">Solicitar Cotización Formal</h2>
+
+      <section className="section panel">
+        <h2 className="section-title">
+          Solicitar Cotización Formal
+        </h2>
 
         {mensajeExito && (
-          <div className="alert-success">
-            ¡Mensaje enviado con éxito! Nos pondremos en contacto contigo pronto.
+          <div className="success">
+            ¡Mensaje enviado con éxito!
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="contact-form">
-          <div className="form-group">
-            <label htmlFor="nombre">Nombre o Empresa:</label>
-            <input
-              type="text"
-              id="nombre"
-              name="nombre"
-              required
-              value={formData.nombre}
-              onChange={handleChange}
-              placeholder="Tu nombre o razón social"
-            />
-          </div>
+        <form
+          className="form"
+          onSubmit={handleSubmit}
+        >
+          <label>
+            Nombre o Empresa:
+          </label>
 
-          <div className="form-group">
-            <label htmlFor="correo">Correo Electrónico:</label>
-            <input
-              type="email"
-              id="correo"
-              name="correo"
-              required
-              value={formData.correo}
-              onChange={handleChange}
-              placeholder="correo@ejemplo.com"
-            />
-          </div>
+          <input
+            name="nombre"
+            value={formData.nombre}
+            onChange={handleChange}
+            required
+          />
 
-          <div className="form-group">
-            <label htmlFor="mensaje">Mensaje:</label>
-            <textarea
-              id="mensaje"
-              name="mensaje"
-              rows="4"
-              required
-              value={formData.mensaje}
-              onChange={handleChange}
-              placeholder="Detalles adicionales sobre tu proyecto..."
-            ></textarea>
-          </div>
+          <label>
+            Correo Electrónico:
+          </label>
 
-          <button type="submit" className="btn-submit">
+          <input
+            type="email"
+            name="correo"
+            value={formData.correo}
+            onChange={handleChange}
+            required
+          />
+
+          <label>
+            Mensaje:
+          </label>
+
+          <textarea
+            name="mensaje"
+            value={formData.mensaje}
+            onChange={handleChange}
+            required
+            rows="5"
+          />
+
+          <button
+            className="button"
+            type="submit"
+          >
             Enviar Solicitud
           </button>
         </form>
       </section>
-    </div>
+    </>
   );
 }
+
+
+function Solicitudes() {
+  const [solicitudes, setSolicitudes] =
+    useState([]);
+
+  const [pagina, setPagina] =
+    useState(1);
+
+  const [totalPaginas, setTotalPaginas] =
+    useState(1);
+
+  const [totalRegistros, setTotalRegistros] =
+    useState(0);
+
+
+  useEffect(() => {
+    fetch(
+      `/api/solicitudes/?page=${pagina}&page_size=3`
+    )
+      .then((respuesta) => {
+        if (!respuesta.ok) {
+          throw new Error(
+            'Error cargando solicitudes'
+          );
+        }
+
+        return respuesta.json();
+      })
+      .then((data) => {
+        setSolicitudes(
+          data.resultados
+        );
+
+        setTotalPaginas(
+          data.total_paginas
+        );
+
+        setTotalRegistros(
+          data.total_registros
+        );
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, [pagina]);
+
+
+  const numerosPagina = [];
+
+  for (
+    let numero = 1;
+    numero <= totalPaginas;
+    numero += 1
+  ) {
+    numerosPagina.push(numero);
+  }
+
+
+  return (
+    <section className="section">
+      <h1 className="title">
+        Solicitudes recibidas
+      </h1>
+
+      <p className="counter">
+        Total de solicitudes:{' '}
+        {totalRegistros}
+      </p>
+
+
+      <div className="requests">
+        {solicitudes.map(
+          (solicitud) => (
+            <article
+              key={solicitud.id}
+              className="request-card"
+            >
+              <h3>
+                {solicitud.nombre}
+              </h3>
+
+              <p>
+                {solicitud.correo}
+              </p>
+
+              <p>
+                {solicitud.mensaje}
+              </p>
+
+              <p>
+                Total: $
+                {solicitud.total_estimado_clp.toLocaleString(
+                  'es-CL'
+                )}{' '}
+                CLP
+              </p>
+
+              <a
+                className="detail-link"
+                href={
+                  `/solicitudes/${solicitud.id}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Abrir detalle en nueva pestaña
+              </a>
+            </article>
+          )
+        )}
+      </div>
+
+
+      <div className="pagination">
+        <button
+          type="button"
+          disabled={pagina === 1}
+          onClick={() =>
+            setPagina(
+              (anterior) =>
+                anterior - 1
+            )
+          }
+        >
+          Anterior
+        </button>
+
+
+        {numerosPagina.map(
+          (numero) => (
+            <button
+              type="button"
+              key={numero}
+              className={
+                pagina === numero
+                  ? 'active-page'
+                  : ''
+              }
+              onClick={() =>
+                setPagina(
+                  numero
+                )
+              }
+            >
+              {numero}
+            </button>
+          )
+        )}
+
+
+        <button
+          type="button"
+          disabled={
+            pagina === totalPaginas
+          }
+          onClick={() =>
+            setPagina(
+              (anterior) =>
+                anterior + 1
+            )
+          }
+        >
+          Siguiente
+        </button>
+      </div>
+    </section>
+  );
+}
+
+
+function DetalleSolicitud() {
+  const {
+    id
+  } = useParams();
+
+  const [solicitud, setSolicitud] =
+    useState(null);
+
+  const [error, setError] =
+    useState('');
+
+
+  useEffect(() => {
+    fetch(
+      `/api/solicitudes/${id}/`
+    )
+      .then((respuesta) => {
+        if (!respuesta.ok) {
+          throw new Error(
+            'Solicitud no encontrada'
+          );
+        }
+
+        return respuesta.json();
+      })
+      .then((data) => {
+        setSolicitud(data);
+      })
+      .catch(() => {
+        setError(
+          'No se pudo cargar la solicitud.'
+        );
+      });
+  }, [id]);
+
+
+  if (error) {
+    return (
+      <div className="section">
+        <h2>{error}</h2>
+      </div>
+    );
+  }
+
+
+  if (!solicitud) {
+    return (
+      <div className="section">
+        <h2>
+          Cargando solicitud...
+        </h2>
+      </div>
+    );
+  }
+
+
+  return (
+    <section className="section detail-page">
+      <h1 className="title">
+        Detalle de solicitud
+      </h1>
+
+      <div className="request-card">
+        <h2>
+          {solicitud.nombre}
+        </h2>
+
+        <p>
+          <strong>
+            Correo:
+          </strong>{' '}
+          {solicitud.correo}
+        </p>
+
+        <p>
+          <strong>
+            Mensaje:
+          </strong>{' '}
+          {solicitud.mensaje}
+        </p>
+
+        <p>
+          <strong>
+            Planes:
+          </strong>
+        </p>
+
+        <ul>
+          {solicitud.planes_solicitados.map(
+            (plan) => (
+              <li key={plan}>
+                {plan}
+              </li>
+            )
+          )}
+        </ul>
+
+        <p>
+          <strong>
+            Total:
+          </strong>{' '}
+          $
+          {solicitud.total_estimado_clp.toLocaleString(
+            'es-CL'
+          )}{' '}
+          CLP
+        </p>
+
+        <p>
+          <strong>
+            Fecha:
+          </strong>{' '}
+          {new Date(
+            solicitud.fecha_creacion
+          ).toLocaleString(
+            'es-CL'
+          )}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="container">
+        <Navegacion />
+
+        <Routes>
+          <Route
+            path="/"
+            element={<Inicio />}
+          />
+
+          <Route
+            path="/solicitudes"
+            element={<Solicitudes />}
+          />
+
+          <Route
+            path="/solicitudes/:id"
+            element={<DetalleSolicitud />}
+          />
+        </Routes>
+      </div>
+    </BrowserRouter>
+  );
+}
+
 
 export default App;

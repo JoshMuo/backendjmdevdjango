@@ -1,27 +1,68 @@
 from django.db import models
+from django_mongodb_backend.fields import ObjectIdAutoField
+
 
 class CategoriaPlan(models.Model):
-    nombre = models.CharField(max_length=100)
-    descripcion = models.TextField()
+    id = ObjectIdAutoField(primary_key=True)
+
+    nombre = models.CharField(
+        max_length=100,
+        unique=True
+    )
+
+    descripcion = models.TextField(
+        blank=True,
+        default=""
+    )
 
     def __str__(self):
         return self.nombre
+
 
 class Plan(models.Model):
-    nombre = models.CharField(max_length=100)
-    precio_clp = models.DecimalField(max_digits=10, decimal_places=2)
+    id = ObjectIdAutoField(primary_key=True)
+
+    nombre = models.CharField(
+        max_length=150
+    )
+
+    precio_clp = models.FloatField()
+
     caracteristicas = models.TextField()
-    categoria = models.ForeignKey(CategoriaPlan, on_delete=models.CASCADE, related_name='planes')
+
+    categoria = models.ForeignKey(
+        CategoriaPlan,
+        on_delete=models.CASCADE,
+        related_name="planes"
+    )
 
     def __str__(self):
         return self.nombre
 
+
 class SolicitudContacto(models.Model):
-    nombre_cliente = models.CharField(max_length=150)
-    email = models.EmailField()
+    id = ObjectIdAutoField(primary_key=True)
+
+    nombre = models.CharField(
+        max_length=150
+    )
+
+    correo = models.EmailField()
+
     mensaje = models.TextField()
-    plan_interes = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True, blank=True)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    planes_solicitados = models.JSONField(
+        default=list,
+        blank=True
+    )
+
+    total_estimado_clp = models.FloatField(
+        default=0
+    )
+
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True
+    )
 
     def __str__(self):
-        return f"Solicitud de {self.nombre_cliente}"
+        return f"{self.nombre} - {self.correo}"
