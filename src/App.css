@@ -40,11 +40,13 @@ textarea {
   padding: 10px 18px;
   border: 1px solid #00e5ff;
   border-radius: 8px;
+  transition: all 0.25s ease;
 }
 
 .nav-link:hover {
   background: #00e5ff;
   color: #08101c;
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
 }
 
 .header {
@@ -104,13 +106,89 @@ textarea {
   padding: 30px;
 }
 
+/* =========================================
+   EFECTO HOVER DE LAS TARJETAS DE PLANES
+   ========================================= */
+
 .card {
+  position: relative;
   text-align: center;
+  overflow: hidden;
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease;
+
+  cursor: default;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+
+  top: -60%;
+  left: -100%;
+
+  width: 70%;
+  height: 220%;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 229, 255, 0.12),
+    transparent
+  );
+
+  transform: rotate(20deg);
+
+  transition: left 0.6s ease;
+
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-12px) scale(1.025);
+
+  border-color: #00f59b;
+
+  background: #121e31;
+
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(0, 229, 255, 0.28),
+    0 0 35px rgba(0, 245, 155, 0.12);
+}
+
+.card:hover::before {
+  left: 150%;
 }
 
 .card h3 {
+  position: relative;
+  z-index: 2;
+
   color: #00e5ff;
   font-size: 1.5rem;
+
+  transition:
+    color 0.3s ease,
+    text-shadow 0.3s ease;
+}
+
+.card:hover h3 {
+  color: #00f59b;
+
+  text-shadow:
+    0 0 10px rgba(0, 245, 155, 0.5);
+}
+
+.card p,
+.card .usd,
+.card button {
+  position: relative;
+  z-index: 2;
 }
 
 .usd {
@@ -118,7 +196,22 @@ textarea {
   font-size: 1.7rem;
   font-weight: bold;
   margin: 20px 0;
+
+  transition:
+    transform 0.3s ease,
+    text-shadow 0.3s ease;
 }
+
+.card:hover .usd {
+  transform: scale(1.08);
+
+  text-shadow:
+    0 0 14px rgba(0, 245, 155, 0.5);
+}
+
+/* =========================================
+   BOTONES
+   ========================================= */
 
 .button {
   width: 100%;
@@ -129,11 +222,29 @@ textarea {
   color: #05130e;
   cursor: pointer;
   font-weight: bold;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .button:hover {
-  opacity: 0.85;
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 0 18px rgba(0, 245, 155, 0.45);
+
+  opacity: 0.95;
 }
+
+.button:active {
+  transform: scale(0.98);
+}
+
+/* =========================================
+   PLANES SELECCIONADOS
+   ========================================= */
 
 .selected-plan {
   display: flex;
@@ -154,6 +265,10 @@ textarea {
   cursor: pointer;
 }
 
+/* =========================================
+   FORMULARIO
+   ========================================= */
+
 .form {
   display: grid;
   gap: 15px;
@@ -172,6 +287,20 @@ textarea {
   background: #08101c;
   border: 1px solid #34425d;
   border-radius: 8px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.form input:focus,
+.form textarea:focus {
+  outline: none;
+
+  border-color: #00e5ff;
+
+  box-shadow:
+    0 0 12px rgba(0, 229, 255, 0.2);
 }
 
 .success {
@@ -183,6 +312,10 @@ textarea {
   border-radius: 8px;
   background: #07372e;
 }
+
+/* =========================================
+   SOLICITUDES
+   ========================================= */
 
 .counter {
   text-align: center;
@@ -206,6 +339,10 @@ textarea {
   font-weight: bold;
 }
 
+/* =========================================
+   PAGINACIÓN
+   ========================================= */
+
 .pagination {
   margin-top: 35px;
   display: flex;
@@ -222,11 +359,17 @@ textarea {
   background: #111a2b;
   color: white;
   cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .pagination button:hover:not(:disabled) {
   background: #00e5ff;
   color: #07111c;
+  transform: translateY(-2px);
 }
 
 .pagination button:disabled {
@@ -244,6 +387,10 @@ textarea {
   max-width: 850px;
 }
 
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
 @media (max-width: 700px) {
   .nav {
     flex-direction: column;
@@ -257,5 +404,9 @@ textarea {
 
   .section {
     width: 94%;
+  }
+
+  .card:hover {
+    transform: translateY(-6px) scale(1.01);
   }
 }
