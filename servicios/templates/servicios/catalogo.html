@@ -2,8 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
   <title>JMDevStudio - Catálogo de Planes</title>
+
   <style>
     :root {
       --bg-dark: #0a0c16;
@@ -23,102 +29,250 @@
     }
 
     body {
+      min-height: 100vh;
       background-color: var(--bg-dark);
       color: var(--text-main);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+      font-family:
+        "Segoe UI",
+        Tahoma,
+        Geneva,
+        Verdana,
+        sans-serif;
+
       padding: 2.5rem 1rem;
     }
 
     .container {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
     }
 
     .main-title {
       text-align: center;
-      font-size: 2.2rem;
-      margin-bottom: 2.5rem;
+
+      font-size: clamp(
+        2rem,
+        5vw,
+        3rem
+      );
+
+      margin-bottom: 0.7rem;
+
       color: var(--neon-cyan);
-      text-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+
+      text-shadow:
+        0 0 12px rgba(0, 240, 255, 0.4);
+
       letter-spacing: 1px;
     }
 
+    .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+
+      margin-bottom: 2.5rem;
+
+      font-size: 1rem;
+    }
+
     .plans-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(280px, 1fr)
+        );
+
       gap: 1.5rem;
     }
 
     .plan-card {
+      position: relative;
+
+      overflow: hidden;
+
       background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
+
+      border:
+        1px solid
+        var(--border-color);
+
+      border-radius: 14px;
+
       padding: 1.8rem;
-      box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+      box-shadow:
+        0 0 15px
+        rgba(0, 240, 255, 0.1);
+
+      transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+    }
+
+    .plan-card::before {
+      content: "";
+
+      position: absolute;
+
+      top: 0;
+      left: 0;
+
+      width: 100%;
+      height: 3px;
+
+      background:
+        linear-gradient(
+          90deg,
+          var(--neon-cyan),
+          var(--neon-magenta),
+          var(--neon-green)
+        );
     }
 
     .plan-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--neon-cyan);
-      box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+      transform: translateY(-6px);
+
+      border-color:
+        var(--neon-cyan);
+
+      box-shadow:
+        0 0 25px
+        rgba(0, 240, 255, 0.28);
     }
 
     .plan-card h2 {
       font-size: 1.5rem;
+
       color: #ffffff;
-      margin-bottom: 0.3rem;
+
+      margin-bottom: 0.5rem;
     }
 
     .plan-category {
+      display: inline-block;
+
       font-size: 0.9rem;
+
       color: var(--neon-magenta);
-      font-style: italic;
-      margin-bottom: 0.8rem;
+
+      margin-bottom: 1rem;
     }
 
     .plan-price {
-      font-size: 1.25rem;
-      font-weight: bold;
+      font-size: 1.45rem;
+
+      font-weight: 700;
+
       color: var(--neon-green);
-      text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
-      margin-bottom: 0.6rem;
+
+      text-shadow:
+        0 0 8px
+        rgba(0, 255, 136, 0.3);
+
+      margin-bottom: 1rem;
     }
 
     .plan-details {
       color: var(--text-muted);
+
       font-size: 0.95rem;
-      line-height: 1.5;
+
+      line-height: 1.6;
+
+      white-space: pre-line;
     }
 
     .plan-details strong {
       color: var(--text-main);
     }
+
+    .empty-card {
+      grid-column: 1 / -1;
+
+      text-align: center;
+
+      padding: 2.5rem;
+    }
+
+    .empty-card h2 {
+      margin-bottom: 0.8rem;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1.5rem 0.8rem;
+      }
+
+      .plan-card {
+        padding: 1.4rem;
+      }
+    }
   </style>
 </head>
+
 <body>
 
-  <div class="container">
-    <h1 class="main-title">Catálogo de Servicios y Planes - JMDevStudio</h1>
+  <main class="container">
 
-    <div class="plans-list">
-      {% for servicio in servicios %}
-      <div class="plan-card">
-        <h2>{{ servicio.nombre }}</h2>
-        <div class="plan-category">Categoría: {{ servicio.categoria }}</div>
-        <div class="plan-price">Precio: ${{ servicio.precio }} CLP</div>
-        <div class="plan-details">
-          <strong>Detalles:</strong> {{ servicio.descripcion }}
-        </div>
-      </div>
+    <h1 class="main-title">
+      Catálogo de Servicios y Planes
+    </h1>
+
+    <p class="subtitle">
+      JMDevStudio · Soluciones digitales a medida
+    </p>
+
+    <section class="plans-list">
+
+      {% for plan in planes %}
+
+        <article class="plan-card">
+
+          <h2>
+            {{ plan.nombre }}
+          </h2>
+
+          <div class="plan-category">
+            Categoría:
+            {{ plan.categoria.nombre }}
+          </div>
+
+          <div class="plan-price">
+            ${{ plan.precio_clp|floatformat:0 }}
+            CLP
+          </div>
+
+          <div class="plan-details">
+            <strong>Características:</strong>
+            {{ plan.caracteristicas }}
+          </div>
+
+        </article>
+
       {% empty %}
-      <div class="plan-card">
-        <h2>No hay planes registrados</h2>
-        <p class="plan-details">Agrega registros desde el panel de Django Admin.</p>
-      </div>
+
+        <article class="plan-card empty-card">
+
+          <h2>
+            No hay planes registrados
+          </h2>
+
+          <p class="plan-details">
+            Agrega registros desde el panel
+            de Django Admin.
+          </p>
+
+        </article>
+
       {% endfor %}
-    </div>
-  </div>
+
+    </section>
+
+  </main>
 
 </body>
 </html>
