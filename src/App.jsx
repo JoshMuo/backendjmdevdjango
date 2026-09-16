@@ -14,9 +14,12 @@ import {
 import './App.css';
 
 
-/* ============================================================
-   NAVEGACIÓN
-============================================================ */
+const API_BASE_URL =
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+    ? ''
+    : '/backend';
+
 
 function Navegacion() {
   return (
@@ -39,18 +42,11 @@ function Navegacion() {
 }
 
 
-/* ============================================================
-   PÁGINA DE INICIO
-============================================================ */
-
 function Inicio() {
   const [servicios, setServicios] = useState([]);
   const [valorDolar, setValorDolar] = useState(929.18);
 
-  const [
-    planesSeleccionados,
-    setPlanesSeleccionados
-  ] = useState(() => {
+  const [planesSeleccionados, setPlanesSeleccionados] = useState(() => {
     const guardados = localStorage.getItem(
       'planes_cotizacion'
     );
@@ -72,34 +68,16 @@ function Inicio() {
     mensaje: ''
   });
 
-  const [
-    mensajeExito,
-    setMensajeExito
-  ] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState(false);
 
-  const [
-    enviando,
-    setEnviando
-  ] = useState(false);
-
-
-  /* ==========================================================
-     VALOR DEL DÓLAR
-  ========================================================== */
 
   useEffect(() => {
     fetch(
       'https://mindicador.cl/api/dolar'
     )
-      .then((respuesta) => {
-        if (!respuesta.ok) {
-          throw new Error(
-            'No fue posible obtener el dólar'
-          );
-        }
-
-        return respuesta.json();
-      })
+      .then((respuesta) =>
+        respuesta.json()
+      )
       .then((data) => {
         if (
           data.serie &&
@@ -116,13 +94,9 @@ function Inicio() {
   }, []);
 
 
-  /* ==========================================================
-     CARGAR PLANES DESDE DJANGO
-  ========================================================== */
-
   useEffect(() => {
     fetch(
-      '/api/planes/',
+      `${API_BASE_URL}/api/planes/`,
       {
         credentials: 'include'
       }
@@ -137,16 +111,17 @@ function Inicio() {
         return respuesta.json();
       })
       .then((data) => {
-        if (
-          data.ok &&
-          Array.isArray(data.resultados)
-        ) {
-          setServicios(
-            data.resultados
-          );
-        } else {
-          setServicios([]);
-        }
+        /*
+         * Compatibilidad:
+         * - backend antiguo: [...]
+         * - backend nuevo: { ok: true, resultados: [...] }
+         */
+        const resultados =
+          Array.isArray(data)
+            ? data
+            : data.resultados || [];
+
+        setServicios(resultados);
       })
       .catch((error) => {
         console.error(error);
@@ -154,10 +129,6 @@ function Inicio() {
       });
   }, []);
 
-
-  /* ==========================================================
-     GUARDAR COTIZACIÓN LOCAL
-  ========================================================== */
 
   useEffect(() => {
     localStorage.setItem(
@@ -169,29 +140,18 @@ function Inicio() {
   }, [planesSeleccionados]);
 
 
-  /* ==========================================================
-     AGREGAR PLAN
-  ========================================================== */
-
   const agregarPlan = (servicio) => {
     setPlanesSeleccionados(
       (anteriores) => [
         ...anteriores,
         {
           ...servicio,
-          uid:
-            `${servicio.id}-` +
-            `${Date.now()}-` +
-            `${Math.random()}`
+          uid: `${servicio.id}-${Date.now()}-${Math.random()}`
         }
       ]
     );
   };
 
-
-  /* ==========================================================
-     ELIMINAR PLAN
-  ========================================================== */
 
   const eliminarPlan = (uid) => {
     setPlanesSeleccionados(
@@ -203,10 +163,6 @@ function Inicio() {
     );
   };
 
-
-  /* ==========================================================
-     TOTALES
-  ========================================================== */
 
   const totalCLP =
     planesSeleccionados.reduce(
@@ -228,10 +184,6 @@ function Inicio() {
       : '0.00';
 
 
-  /* ==========================================================
-     FORMULARIO
-  ========================================================== */
-
   const handleChange = (evento) => {
     const {
       name,
@@ -244,72 +196,20 @@ function Inicio() {
         [name]: value
       })
     );
-
-    if (mensajeExito) {
-      setMensajeExito(false);
-    }
   };
 
-
-  /* ==========================================================
-     OBTENER TOKEN CSRF
-  ========================================================== */
-
-  const obtenerCsrfToken = async () => {
-    const respuesta = await fetch(
-      '/api/csrf/',
-      {
-        method: 'GET',
-        credentials: 'include'
-      }
-    );
-
-    if (!respuesta.ok) {
-      throw new Error(
-        'No fue posible obtener el token CSRF.'
-      );
-    }
-
-    const data = await respuesta.json();
-
-    if (
-      !data.ok ||
-      !data.csrfToken
-    ) {
-      throw new Error(
-        'Django no entregó un token CSRF válido.'
-      );
-    }
-
-    return data.csrfToken;
-  };
-
-
-  /* ==========================================================
-     ENVIAR SOLICITUD
-  ========================================================== */
 
   const handleSubmit = async (
     evento
   ) => {
     evento.preventDefault();
 
-    if (enviando) {
-      return;
-    }
-
-    setEnviando(true);
     setMensajeExito(false);
 
     const payload = {
-      nombre:
-        formData.nombre.trim(),
-
-      correo:
-        formData.correo.trim(),
-
-      mensaje:
-        formData.mensaje.trim(),
+      nombre: formData.nombre,
+      correo: formData.correo,
+      mensaje: formData.mensaje,
 
       planes_solicitados:
         planesSeleccionados.map(
@@ -322,21 +222,44 @@ function Inicio() {
     };
 
     try {
-      /* ------------------------------------------------------
-         1. Obtener token CSRF desde Django
-      ------------------------------------------------------ */
+      /*
+       * Primero solicitamos el token CSRF
+       * al backend Django.
+       */
+      const respuestaCsrf =
+        await fetch(
+          `${API_BASE_URL}/api/csrf/`,
+          {
+            method: 'GET',
+            credentials: 'include'
+          }
+        );
+
+      if (!respuestaCsrf.ok) {
+        throw new Error(
+          'No se pudo obtener el token CSRF'
+        );
+      }
+
+      const datosCsrf =
+        await respuestaCsrf.json();
 
       const csrfToken =
-        await obtenerCsrfToken();
+        datosCsrf.csrfToken;
 
+      if (!csrfToken) {
+        throw new Error(
+          'El backend no entregó un token CSRF'
+        );
+      }
 
-      /* ------------------------------------------------------
-         2. Enviar solicitud protegida con CSRF
-      ------------------------------------------------------ */
-
+      /*
+       * Enviamos la solicitud utilizando
+       * el token CSRF obtenido.
+       */
       const respuesta =
         await fetch(
-          '/api/contacto/',
+          `${API_BASE_URL}/api/contacto/`,
           {
             method: 'POST',
 
@@ -356,34 +279,26 @@ function Inicio() {
           }
         );
 
-
-      /* ------------------------------------------------------
-         3. Leer respuesta Django
-      ------------------------------------------------------ */
-
-      const data =
-        await respuesta.json();
-
-
       if (!respuesta.ok) {
+        let detalleError = '';
+
+        try {
+          const datosError =
+            await respuesta.json();
+
+          detalleError =
+            datosError.error ||
+            datosError.mensaje ||
+            '';
+        } catch {
+          detalleError = '';
+        }
+
         throw new Error(
-          data.error ||
+          detalleError ||
           'Error enviando solicitud'
         );
       }
-
-
-      if (!data.ok) {
-        throw new Error(
-          data.error ||
-          'No fue posible registrar la solicitud.'
-        );
-      }
-
-
-      /* ------------------------------------------------------
-         4. ÉXITO
-      ------------------------------------------------------ */
 
       setMensajeExito(true);
 
@@ -395,27 +310,19 @@ function Inicio() {
 
       setPlanesSeleccionados([]);
 
-      localStorage.removeItem(
-        'planes_cotizacion'
-      );
-
     } catch (error) {
       console.error(error);
 
       alert(
-        error.message ||
-        'No se pudo enviar la solicitud.'
+        `No se pudo enviar la solicitud.${
+          error.message
+            ? ` ${error.message}`
+            : ''
+        }`
       );
-
-    } finally {
-      setEnviando(false);
     }
   };
 
-
-  /* ==========================================================
-     INTERFAZ
-  ========================================================== */
 
   return (
     <>
@@ -440,96 +347,86 @@ function Inicio() {
       </div>
 
 
-      {/* =====================================================
-          PLANES
-      ===================================================== */}
-
       <section className="section">
         <h2 className="section-title">
           Planes de Desarrollo Disponibles
         </h2>
 
         <div className="services-grid">
-          {servicios.length === 0 ? (
+          {servicios.length === 0 && (
             <p>
               No hay planes disponibles.
             </p>
-          ) : (
-            servicios.map(
-              (servicio) => {
-                const precioCLP =
-                  Number(
-                    servicio.precio_clp ||
+          )}
+
+          {servicios.map(
+            (servicio) => {
+              const precioCLP =
+                Number(
+                  servicio.precio_clp ||
                     0
-                  );
-
-                const precioUSD =
-                  valorDolar > 0
-                    ? (
-                        precioCLP /
-                        valorDolar
-                      ).toFixed(2)
-                    : '0.00';
-
-                return (
-                  <article
-                    key={servicio.id}
-                    className="card"
-                  >
-                    <h3>
-                      {servicio.nombre}
-                    </h3>
-
-                    <div className="usd">
-                      ${precioUSD} USD
-                    </div>
-
-                    <p>
-                      $
-                      {precioCLP.toLocaleString(
-                        'es-CL'
-                      )}{' '}
-                      CLP
-                    </p>
-
-                    <p>
-                      {
-                        servicio
-                          .caracteristicas
-                      }
-                    </p>
-
-                    <p>
-                      Categoría:{' '}
-                      {
-                        servicio
-                          .categoria
-                      }
-                    </p>
-
-                    <button
-                      className="button"
-                      type="button"
-                      onClick={() =>
-                        agregarPlan(
-                          servicio
-                        )
-                      }
-                    >
-                      Seleccionar Plan
-                    </button>
-                  </article>
                 );
-              }
-            )
+
+              const precioUSD =
+                valorDolar > 0
+                  ? (
+                      precioCLP /
+                      valorDolar
+                    ).toFixed(2)
+                  : '0.00';
+
+              return (
+                <article
+                  key={servicio.id}
+                  className="card"
+                >
+                  <h3>
+                    {servicio.nombre}
+                  </h3>
+
+                  <div className="usd">
+                    ${precioUSD} USD
+                  </div>
+
+                  <p>
+                    $
+                    {precioCLP.toLocaleString(
+                      'es-CL'
+                    )}{' '}
+                    CLP
+                  </p>
+
+                  <p>
+                    {
+                      servicio.caracteristicas
+                    }
+                  </p>
+
+                  <p>
+                    Categoría:{' '}
+                    {
+                      servicio.categoria
+                    }
+                  </p>
+
+                  <button
+                    className="button"
+                    type="button"
+                    onClick={() =>
+                      agregarPlan(
+                        servicio
+                      )
+                    }
+                  >
+                    Seleccionar Plan
+                  </button>
+                </article>
+              );
+            }
           )}
         </div>
       </section>
 
-
-      {/* =====================================================
-          COTIZACIÓN
-      ===================================================== */}
 
       <section className="section panel">
         <h2 className="section-title">
@@ -586,10 +483,6 @@ function Inicio() {
       </section>
 
 
-      {/* =====================================================
-          FORMULARIO
-      ===================================================== */}
-
       <section className="section panel">
         <h2 className="section-title">
           Solicitar Cotización Formal
@@ -614,10 +507,7 @@ function Inicio() {
             value={formData.nombre}
             onChange={handleChange}
             required
-            minLength="2"
-            maxLength="150"
           />
-
 
           <label>
             Correo Electrónico:
@@ -631,7 +521,6 @@ function Inicio() {
             required
           />
 
-
           <label>
             Mensaje:
           </label>
@@ -641,21 +530,14 @@ function Inicio() {
             value={formData.mensaje}
             onChange={handleChange}
             required
-            minLength="10"
             rows="5"
           />
-
 
           <button
             className="button"
             type="submit"
-            disabled={enviando}
           >
-            {
-              enviando
-                ? 'Enviando...'
-                : 'Enviar Solicitud'
-            }
+            Enviar Solicitud
           </button>
         </form>
       </section>
@@ -664,104 +546,58 @@ function Inicio() {
 }
 
 
-/* ============================================================
-   SOLICITUDES
-============================================================ */
-
 function Solicitudes() {
-  const [
-    solicitudes,
-    setSolicitudes
-  ] = useState([]);
+  const [solicitudes, setSolicitudes] =
+    useState([]);
 
-  const [
-    pagina,
-    setPagina
-  ] = useState(1);
+  const [pagina, setPagina] =
+    useState(1);
 
-  const [
-    totalPaginas,
-    setTotalPaginas
-  ] = useState(1);
+  const [totalPaginas, setTotalPaginas] =
+    useState(1);
 
-  const [
-    totalRegistros,
-    setTotalRegistros
-  ] = useState(0);
+  const [totalRegistros, setTotalRegistros] =
+    useState(0);
 
-  const [
-    error,
-    setError
-  ] = useState('');
-
-
-  /* ==========================================================
-     CARGAR SOLICITUDES
-  ========================================================== */
 
   useEffect(() => {
-    setError('');
-
     fetch(
-      `/api/solicitudes/?page=${pagina}&page_size=3`,
+      `${API_BASE_URL}/api/solicitudes/?page=${pagina}&page_size=3`,
       {
         credentials: 'include'
       }
     )
-      .then(async (respuesta) => {
-        const data =
-          await respuesta.json();
-
+      .then((respuesta) => {
         if (!respuesta.ok) {
           throw new Error(
-            data.error ||
             'Error cargando solicitudes'
           );
         }
 
-        return data;
+        return respuesta.json();
       })
       .then((data) => {
         setSolicitudes(
-          Array.isArray(
-            data.resultados
-          )
-            ? data.resultados
-            : []
+          data.resultados || []
         );
 
         setTotalPaginas(
-          Number(
-            data.total_paginas ||
-            1
-          )
+          data.total_paginas || 1
         );
 
         setTotalRegistros(
-          Number(
-            data.total_registros ||
-            0
-          )
+          data.total_registros || 0
         );
       })
-      .catch((errorCarga) => {
-        console.error(
-          errorCarga
-        );
+      .catch((error) => {
+        console.error(error);
 
         setSolicitudes([]);
-
-        setError(
-          errorCarga.message ||
-          'No se pudieron cargar las solicitudes.'
-        );
+        setTotalPaginas(1);
+        setTotalRegistros(0);
       });
   }, [pagina]);
 
-
-  /* ==========================================================
-     NÚMEROS DE PÁGINA
-  ========================================================== */
 
   const numerosPagina = [];
 
@@ -770,15 +606,9 @@ function Solicitudes() {
     numero <= totalPaginas;
     numero += 1
   ) {
-    numerosPagina.push(
-      numero
-    );
+    numerosPagina.push(numero);
   }
 
-
-  /* ==========================================================
-     INTERFAZ
-  ========================================================== */
 
   return (
     <section className="section">
@@ -790,13 +620,6 @@ function Solicitudes() {
         Total de solicitudes:{' '}
         {totalRegistros}
       </p>
-
-
-      {error && (
-        <div className="error">
-          {error}
-        </div>
-      )}
 
 
       <div className="requests">
@@ -821,8 +644,7 @@ function Solicitudes() {
               <p>
                 Total: $
                 {Number(
-                  solicitud
-                    .total_estimado_clp ||
+                  solicitud.total_estimado_clp ||
                   0
                 ).toLocaleString(
                   'es-CL'
@@ -846,177 +668,110 @@ function Solicitudes() {
       </div>
 
 
-      {/* =====================================================
-          PAGINACIÓN
-      ===================================================== */}
-
-      {totalPaginas > 0 && (
-        <div className="pagination">
-          <button
-            type="button"
-            disabled={
-              pagina === 1
-            }
-            onClick={() =>
-              setPagina(
-                (anterior) =>
-                  Math.max(
-                    1,
-                    anterior - 1
-                  )
-              )
-            }
-          >
-            Anterior
-          </button>
-
-
-          {numerosPagina.map(
-            (numero) => (
-              <button
-                type="button"
-                key={numero}
-                className={
-                  pagina === numero
-                    ? 'active-page'
-                    : ''
-                }
-                onClick={() =>
-                  setPagina(
-                    numero
-                  )
-                }
-              >
-                {numero}
-              </button>
+      <div className="pagination">
+        <button
+          type="button"
+          disabled={pagina === 1}
+          onClick={() =>
+            setPagina(
+              (anterior) =>
+                anterior - 1
             )
-          )}
+          }
+        >
+          Anterior
+        </button>
 
 
-          <button
-            type="button"
-            disabled={
-              pagina >=
-              totalPaginas
-            }
-            onClick={() =>
-              setPagina(
-                (anterior) =>
-                  Math.min(
-                    totalPaginas,
-                    anterior + 1
-                  )
-              )
-            }
-          >
-            Siguiente
-          </button>
-        </div>
-      )}
+        {numerosPagina.map(
+          (numero) => (
+            <button
+              type="button"
+              key={numero}
+              className={
+                pagina === numero
+                  ? 'active-page'
+                  : ''
+              }
+              onClick={() =>
+                setPagina(
+                  numero
+                )
+              }
+            >
+              {numero}
+            </button>
+          )
+        )}
+
+
+        <button
+          type="button"
+          disabled={
+            pagina === totalPaginas
+          }
+          onClick={() =>
+            setPagina(
+              (anterior) =>
+                anterior + 1
+            )
+          }
+        >
+          Siguiente
+        </button>
+      </div>
     </section>
   );
 }
 
-
-/* ============================================================
-   DETALLE DE SOLICITUD
-============================================================ */
 
 function DetalleSolicitud() {
   const {
     id
   } = useParams();
 
-  const [
-    solicitud,
-    setSolicitud
-  ] = useState(null);
+  const [solicitud, setSolicitud] =
+    useState(null);
 
-  const [
-    error,
-    setError
-  ] = useState('');
+  const [error, setError] =
+    useState('');
 
-
-  /* ==========================================================
-     CARGAR DETALLE
-  ========================================================== */
 
   useEffect(() => {
-    setError('');
-    setSolicitud(null);
-
     fetch(
-      `/api/solicitudes/${id}/`,
+      `${API_BASE_URL}/api/solicitudes/${id}/`,
       {
         credentials: 'include'
       }
     )
-      .then(async (respuesta) => {
-        const data =
-          await respuesta.json();
-
+      .then((respuesta) => {
         if (!respuesta.ok) {
           throw new Error(
-            data.error ||
             'Solicitud no encontrada'
           );
         }
 
-        return data;
+        return respuesta.json();
       })
       .then((data) => {
-        if (
-          !data.ok ||
-          !data.solicitud
-        ) {
-          throw new Error(
-            'Respuesta de solicitud no válida'
-          );
-        }
-
-        setSolicitud(
-          data.solicitud
-        );
+        setSolicitud(data);
       })
-      .catch((errorCarga) => {
-        console.error(
-          errorCarga
-        );
-
+      .catch(() => {
         setError(
-          errorCarga.message ||
           'No se pudo cargar la solicitud.'
         );
       });
   }, [id]);
 
 
-  /* ==========================================================
-     ERROR
-  ========================================================== */
-
   if (error) {
     return (
       <div className="section">
-        <h2>
-          {error}
-        </h2>
-
-        <Link
-          className="detail-link"
-          to="/solicitudes"
-        >
-          Volver a solicitudes
-        </Link>
+        <h2>{error}</h2>
       </div>
     );
   }
 
-
-  /* ==========================================================
-     CARGANDO
-  ========================================================== */
 
   if (!solicitud) {
     return (
@@ -1029,26 +784,8 @@ function DetalleSolicitud() {
   }
 
 
-  /* ==========================================================
-     PLANES
-  ========================================================== */
-
-  const planes =
-    Array.isArray(
-      solicitud.planes_solicitados
-    )
-      ? solicitud.planes_solicitados
-      : [];
-
-
-  /* ==========================================================
-     INTERFAZ
-  ========================================================== */
-
   return (
-    <section
-      className="section detail-page"
-    >
+    <section className="section detail-page">
       <h1 className="title">
         Detalle de solicitud
       </h1>
@@ -1058,14 +795,12 @@ function DetalleSolicitud() {
           {solicitud.nombre}
         </h2>
 
-
         <p>
           <strong>
             Correo:
           </strong>{' '}
           {solicitud.correo}
         </p>
-
 
         <p>
           <strong>
@@ -1074,34 +809,24 @@ function DetalleSolicitud() {
           {solicitud.mensaje}
         </p>
 
-
         <p>
           <strong>
             Planes:
           </strong>
         </p>
 
-
-        {planes.length > 0 ? (
-          <ul>
-            {planes.map(
-              (plan, indice) => (
-                <li
-                  key={
-                    `${plan}-${indice}`
-                  }
-                >
-                  {plan}
-                </li>
-              )
-            )}
-          </ul>
-        ) : (
-          <p>
-            No hay planes asociados.
-          </p>
-        )}
-
+        <ul>
+          {(
+            solicitud.planes_solicitados ||
+            []
+          ).map(
+            (plan) => (
+              <li key={plan}>
+                {plan}
+              </li>
+            )
+          )}
+        </ul>
 
         <p>
           <strong>
@@ -1109,8 +834,7 @@ function DetalleSolicitud() {
           </strong>{' '}
           $
           {Number(
-            solicitud
-              .total_estimado_clp ||
+            solicitud.total_estimado_clp ||
             0
           ).toLocaleString(
             'es-CL'
@@ -1118,32 +842,23 @@ function DetalleSolicitud() {
           CLP
         </p>
 
-
         <p>
           <strong>
             Fecha:
           </strong>{' '}
-
-          {
-            solicitud.fecha_creacion
-              ? new Date(
-                  solicitud
-                    .fecha_creacion
-                ).toLocaleString(
-                  'es-CL'
-                )
-              : 'Sin fecha'
-          }
+          {solicitud.fecha_creacion
+            ? new Date(
+                solicitud.fecha_creacion
+              ).toLocaleString(
+                'es-CL'
+              )
+            : 'Sin fecha'}
         </p>
       </div>
     </section>
   );
 }
 
-
-/* ============================================================
-   APLICACIÓN
-============================================================ */
 
 function App() {
   return (
@@ -1154,23 +869,17 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={
-              <Inicio />
-            }
+            element={<Inicio />}
           />
 
           <Route
             path="/solicitudes"
-            element={
-              <Solicitudes />
-            }
+            element={<Solicitudes />}
           />
 
           <Route
             path="/solicitudes/:id"
-            element={
-              <DetalleSolicitud />
-            }
+            element={<DetalleSolicitud />}
           />
         </Routes>
       </div>
