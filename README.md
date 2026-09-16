@@ -1,52 +1,279 @@
-# JMDevStudio — Backend con Django Framework e Inteligencia Artificial
+# JMDEVSTUDIOS — Django + React + MongoDB
 
-Proyecto desarrollado para la evaluación de la Unidad 1 de la asignatura **Desarrollo de aplicaciones del lado del servidor**, orientado a la gestión y consulta de planes de desarrollo web, software a medida y cotizaciones comerciales.
+Aplicación web desarrollada como proyecto de Ingeniería de Software, integrando un backend construido con Django, persistencia mediante MongoDB y una interfaz desarrollada con React + Vite.
 
----
+El sistema permite administrar planes de desarrollo, registrar solicitudes de cotización y gestionar las solicitudes mediante autenticación y sesiones de Django.
 
-## 1. Arquitectura y Tecnologías del Lado del Servidor (Criterios 1.1.1, 1.1.2 y 1.1.4)
+## Tecnologías utilizadas
 
-* **Lenguaje y Sintaxis:** Python 3, implementando tipado dinámico, estructuras de control iterativas (`for`, listas por comprensión) y manejo estricto de tipos de datos en la capa de persistencia (`CharField`, `DecimalField`, `IntegerField`, `TextField`, `DateTimeField`).
-* **Framework:** Django, aplicando separación de responsabilidades bajo el patrón arquitectónico **MTV (Model-Template-View)**.
-* **Manejo de Respuestas:** El servidor procesa peticiones HTTP retornando tanto vistas renderizadas del lado del servidor (SSR con motor de templates de Django) como endpoints estructurados en formato JSON (`JsonResponse`) para interoperabilidad con clientes externos o SPAs.
+### Backend
+- Python
+- Django
+- Django Admin
+- MongoDB Atlas
+- django-mongodb-backend
+- API JSON
+- Autenticación y sesiones Django
+- Protección CSRF
 
----
+### Frontend
+- React
+- Vite
+- React Router
+- JavaScript
+- HTML5
+- CSS3
+- LocalStorage
 
-## 2. Django Models y Base de Datos Relacional (Criterio 1.1.2)
+## Arquitectura del proyecto
 
-El esquema de datos relacional se implementa en la aplicación `servicios` mediante tres modelos vinculados por integridad referencial:
+```text
+backendjmdevdjango/
+│
+├── jmdevstudio_backend/
+│   └── Configuración principal del proyecto Django
+│
+├── servicios/
+│   └── Modelos, vistas, Django Admin y API
+│
+├── mongo_migrations/
+│   └── Migraciones de MongoDB
+│
+├── src/
+│   └── Aplicación frontend React
+│
+├── public/
+│   └── Recursos públicos del frontend
+│
+├── cargar_datos.py
+│   └── Script de carga inicial de datos
+│
+├── manage.py
+│   └── Administración del proyecto Django
+│
+├── package.json
+│   └── Dependencias y scripts del frontend
+│
+├── requirements.txt
+│   └── Dependencias Python
+│
+├── .gitignore
+└── README.md
+```
 
-* `CategoriaPlan`: Clasificación temática de los servicios prestados (`Desarrollo Web`, `Software a Medida`).
-* `Plan`: Entidad principal que almacena el nombre comercial, valor en CLP, detalle de características y su respectiva clave foránea (`ForeignKey`) con eliminación en cascada (`on_delete=models.CASCADE`).
-* `SolicitudContacto`: Registro transaccional de prospectos y cotizaciones, enlazado de forma opcional (`null=True`, `blank=True`) a un plan de interés con preservación histórica (`on_delete=models.SET_NULL`).
+## Funcionalidades principales
 
----
+### Catálogo de planes
 
-## 3. Justificación de Paquetes Externos (Criterio 1.1.3)
+Los planes se almacenan en MongoDB y son obtenidos dinámicamente mediante la API desarrollada con Django.
 
-* **`python-dotenv`:** Utilizado para gestionar variables de entorno y desacoplar credenciales sensibles (claves de cifrado `SECRET_KEY`, credenciales de bases de datos y banderas de depuración `DEBUG`) del código fuente publicado en el control de versiones.
+El frontend React consume estos datos y genera automáticamente las tarjetas de los servicios disponibles.
 
----
+### Cotización
 
-## 4. Uso Estratégico de Inteligencia Artificial y Datos de Prueba (Criterios 1.1.4)
+El usuario puede:
 
-* **Diseño e Integración:** Se utilizaron modelos de Inteligencia Artificial para el análisis de requerimientos funcionales, optimización del esquema relacional y refinamiento de la estructura de templates HTML semánticos.
-* **Población y Validación de Datos:** Se implementó el script autónomo `cargar_datos.py`, el cual ejecuta una carga parametrizada y consistente de categorías, planes y solicitudes de contacto representativas para validar el comportamiento del ORM y la renderización en las vistas.
+- Seleccionar uno o varios planes.
+- Eliminar planes de la cotización.
+- Calcular automáticamente el total en CLP.
+- Obtener una referencia aproximada en USD.
+- Mantener temporalmente la selección mediante LocalStorage.
 
----
+### Formulario de contacto
 
-## 5. Justificación Técnica: Protocolos, Hosting y Dominio
+El sistema permite registrar solicitudes de cotización desde el frontend.
 
-* **Protocolos de Red (HTTP / HTTPS):** La arquitectura soporta peticiones seguras mediante transporte cifrado TLS/SSL (HTTPS) para salvaguardar la privacidad de las solicitudes de cotización enviadas por los clientes vía métodos `POST` y `GET`.
-* **Servidor de Aplicaciones y Despliegue:** En desarrollo local se utiliza el servidor integrado `runserver`. Para el entorno de producción se proyecta el uso de una interfaz WSGI/ASGI estándar (**Gunicorn**) acoplada a un servidor proxy inverso (**Nginx**).
-* **Infraestructura de Hosting y DNS:** Alojamiento sobre servicios en la nube (PaaS como Render / PythonAnywhere o IaaS en AWS EC2). La resolución de dominio (`jmdevstudio.cl`) se estructura mediante registros DNS de tipo `A` direccionados hacia la dirección IP estática del servidor web.
+Las solicitudes son validadas por el backend antes de almacenarse en MongoDB.
 
----
+### CRUD
 
-## 6. Instrucciones de Instalación y Ejecución Local
+El proyecto implementa operaciones:
 
-### 6.1. Clonar el repositorio y configurar el entorno
+- CREATE
+- READ
+- UPDATE
+- DELETE
+
+sobre las solicitudes registradas.
+
+### Django Admin
+
+El panel administrativo permite gestionar:
+
+- Categorías de planes.
+- Planes.
+- Solicitudes de contacto.
+- Usuarios.
+- Grupos y permisos.
+
+### Autenticación y sesiones
+
+Las solicitudes administrativas están protegidas mediante el sistema de autenticación de Django.
+
+El sistema implementa:
+
+- Inicio de sesión.
+- Cierre de sesión.
+- Sesiones Django.
+- Restricción de endpoints.
+- Verificación de usuarios staff.
+- Cookies de sesión.
+- Protección CSRF.
+
+Los usuarios no autenticados no pueden acceder a las solicitudes administrativas.
+
+## API
+
+Principales endpoints utilizados por la aplicación:
+
+```text
+GET    /api/planes/
+POST   /api/contacto/
+
+POST   /api/login/
+POST   /api/logout/
+GET    /api/sesion/
+
+GET    /api/solicitudes/
+GET    /api/solicitudes/<id>/
+PUT    /api/solicitudes/<id>/
+DELETE /api/solicitudes/<id>/
+```
+
+En producción, Django está desplegado bajo:
+
+```text
+/backend/
+```
+
+Por ejemplo:
+
+```text
+/backend/api/planes/
+/backend/api/contacto/
+/backend/api/login/
+/backend/api/solicitudes/
+```
+
+## Seguridad
+
+El proyecto incorpora diferentes medidas de seguridad:
+
+- Protección CSRF.
+- Autenticación mediante Django.
+- Control de acceso para usuarios staff.
+- Sesiones protegidas.
+- Cookies HttpOnly.
+- Cookies Secure en producción.
+- SameSite para cookies.
+- Variables sensibles mediante archivo `.env`.
+- HTTPS en producción.
+- Validación de información recibida por la API.
+
+Las credenciales y variables sensibles no deben almacenarse directamente en el repositorio.
+
+## Base de datos
+
+La aplicación utiliza MongoDB Atlas como sistema de persistencia.
+
+Las principales entidades administradas son:
+
+```text
+CategoriaPlan
+Plan
+SolicitudContacto
+```
+
+## Integración Frontend — Backend
+
+El flujo general de la aplicación es:
+
+```text
+React
+   ↓
+API Django
+   ↓
+Modelos Django
+   ↓
+MongoDB Atlas
+   ↓
+Respuesta JSON
+   ↓
+React
+```
+
+Esto permite mantener separadas la interfaz, la lógica del backend y la persistencia de datos.
+
+## Ejecución local
+
+### Backend
+
+Crear o activar el entorno virtual e instalar las dependencias:
+
 ```bash
-git clone [https://github.com/JoshMuo/backendjmdevdjango.git](https://github.com/JoshMuo/backendjmdevdjango.git)
-cd backendjmdevdjango
-python -m venv env
+pip install -r requirements.txt
+```
+
+Ejecutar Django:
+
+```bash
+python manage.py runserver
+```
+
+### Frontend
+
+Instalar dependencias:
+
+```bash
+npm install
+```
+
+Ejecutar Vite:
+
+```bash
+npm run dev
+```
+
+Generar versión de producción:
+
+```bash
+npm run build
+```
+
+## Producción
+
+Aplicación:
+
+https://proyectosjm.cl/
+
+API Django:
+
+https://proyectosjm.cl/backend/api/planes/
+
+## Repositorio
+
+Proyecto desarrollado y mantenido en GitHub.
+
+## Uso de Inteligencia Artificial
+
+Durante el desarrollo se utilizaron herramientas de Inteligencia Artificial como apoyo técnico para analizar errores, revisar código y proponer soluciones relacionadas con la integración entre Django, React y MongoDB.
+
+Las sugerencias fueron revisadas, adaptadas a la arquitectura existente y verificadas mediante pruebas antes de incorporarlas al proyecto.
+
+Entre los usos realizados se encuentran:
+
+- Diagnóstico de errores frontend/backend.
+- Revisión de integración Django y React.
+- Revisión de configuración MongoDB.
+- Implementación y revisión de CSRF.
+- Revisión de autenticación y sesiones.
+- Análisis de errores de producción.
+- Optimización y validación del código.
+
+La IA fue utilizada como herramienta de apoyo al desarrollo y no como sustituto de la revisión y validación del funcionamiento de la aplicación.
+
+## Autor
+
+**JMDEVSTUDIOS**
+
+Proyecto académico de Desarrollo de Aplicaciones Web con Django.
