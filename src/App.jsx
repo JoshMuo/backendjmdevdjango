@@ -21,6 +21,33 @@ const API_BASE_URL =
     : '/backend';
 
 
+async function obtenerCsrfToken() {
+  const respuesta = await fetch(
+    `${API_BASE_URL}/api/csrf/`,
+    {
+      method: 'GET',
+      credentials: 'include'
+    }
+  );
+
+  if (!respuesta.ok) {
+    throw new Error(
+      'No se pudo obtener el token CSRF.'
+    );
+  }
+
+  const datos = await respuesta.json();
+
+  if (!datos.csrfToken) {
+    throw new Error(
+      'El servidor no entregó el token CSRF.'
+    );
+  }
+
+  return datos.csrfToken;
+}
+
+
 function Navegacion() {
   return (
     <nav className="nav">
@@ -43,13 +70,20 @@ function Navegacion() {
 
 
 function Inicio() {
-  const [servicios, setServicios] = useState([]);
-  const [valorDolar, setValorDolar] = useState(929.18);
+  const [servicios, setServicios] =
+    useState([]);
 
-  const [planesSeleccionados, setPlanesSeleccionados] = useState(() => {
-    const guardados = localStorage.getItem(
-      'planes_cotizacion'
-    );
+  const [valorDolar, setValorDolar] =
+    useState(929.18);
+
+  const [
+    planesSeleccionados,
+    setPlanesSeleccionados
+  ] = useState(() => {
+    const guardados =
+      localStorage.getItem(
+        'planes_cotizacion'
+      );
 
     if (!guardados) {
       return [];
@@ -62,13 +96,17 @@ function Inicio() {
     }
   });
 
-  const [formData, setFormData] = useState({
-    nombre: '',
-    correo: '',
-    mensaje: ''
-  });
+  const [formData, setFormData] =
+    useState({
+      nombre: '',
+      correo: '',
+      mensaje: ''
+    });
 
-  const [mensajeExito, setMensajeExito] = useState(false);
+  const [
+    mensajeExito,
+    setMensajeExito
+  ] = useState(false);
 
 
   useEffect(() => {
@@ -111,11 +149,6 @@ function Inicio() {
         return respuesta.json();
       })
       .then((data) => {
-        /*
-         * Compatibilidad:
-         * - backend antiguo: [...]
-         * - backend nuevo: { ok: true, resultados: [...] }
-         */
         const resultados =
           Array.isArray(data)
             ? data
@@ -146,7 +179,10 @@ function Inicio() {
         ...anteriores,
         {
           ...servicio,
-          uid: `${servicio.id}-${Date.now()}-${Math.random()}`
+          uid:
+            `${servicio.id}-` +
+            `${Date.now()}-` +
+            `${Math.random()}`
         }
       ]
     );
@@ -222,41 +258,9 @@ function Inicio() {
     };
 
     try {
-      /*
-       * Primero solicitamos el token CSRF
-       * al backend Django.
-       */
-      const respuestaCsrf =
-        await fetch(
-          `${API_BASE_URL}/api/csrf/`,
-          {
-            method: 'GET',
-            credentials: 'include'
-          }
-        );
-
-      if (!respuestaCsrf.ok) {
-        throw new Error(
-          'No se pudo obtener el token CSRF'
-        );
-      }
-
-      const datosCsrf =
-        await respuestaCsrf.json();
-
       const csrfToken =
-        datosCsrf.csrfToken;
+        await obtenerCsrfToken();
 
-      if (!csrfToken) {
-        throw new Error(
-          'El backend no entregó un token CSRF'
-        );
-      }
-
-      /*
-       * Enviamos la solicitud utilizando
-       * el token CSRF obtenido.
-       */
       const respuesta =
         await fetch(
           `${API_BASE_URL}/api/contacto/`,
@@ -279,24 +283,13 @@ function Inicio() {
           }
         );
 
+      const datos =
+        await respuesta.json();
+
       if (!respuesta.ok) {
-        let detalleError = '';
-
-        try {
-          const datosError =
-            await respuesta.json();
-
-          detalleError =
-            datosError.error ||
-            datosError.mensaje ||
-            '';
-        } catch {
-          detalleError = '';
-        }
-
         throw new Error(
-          detalleError ||
-          'Error enviando solicitud'
+          datos.error ||
+          'Error enviando solicitud.'
         );
       }
 
@@ -314,11 +307,8 @@ function Inicio() {
       console.error(error);
 
       alert(
-        `No se pudo enviar la solicitud.${
-          error.message
-            ? ` ${error.message}`
-            : ''
-        }`
+        error.message ||
+        'No se pudo enviar la solicitud.'
       );
     }
   };
@@ -364,7 +354,7 @@ function Inicio() {
               const precioCLP =
                 Number(
                   servicio.precio_clp ||
-                    0
+                  0
                 );
 
               const precioUSD =
@@ -553,50 +543,434 @@ function Solicitudes() {
   const [pagina, setPagina] =
     useState(1);
 
-  const [totalPaginas, setTotalPaginas] =
-    useState(1);
+  const [
+    totalPaginas,
+    setTotalPaginas
+  ] = useState(1);
 
-  const [totalRegistros, setTotalRegistros] =
-    useState(0);
+  const [
+    totalRegistros,
+    setTotalRegistros
+  ] = useState(0);
+
+  const [cargando, setCargando] =
+    useState(true);
+
+  const [
+    autenticado,
+    setAutenticado
+  ] = useState(false);
+
+  const [usuario, setUsuario] =
+    useState(null);
+
+  const [
+    errorLogin,
+    setErrorLogin
+  ] = useState('');
+
+  const [loginData, setLoginData] =
+    useState({
+      username: '',
+      password: ''
+    });
 
 
-  useEffect(() => {
-    fetch(
-      `${API_BASE_URL}/api/solicitudes/?page=${pagina}&page_size=3`,
-      {
-        credentials: 'include'
-      }
-    )
-      .then((respuesta) => {
-        if (!respuesta.ok) {
+  const cargarSolicitudes =
+    async (numeroPagina = pagina) => {
+      try {
+        setCargando(true);
+
+        const respuesta =
+          await fetch(
+            `${API_BASE_URL}/api/solicitudes/?page=${numeroPagina}&page_size=3`,
+            {
+              method: 'GET',
+              credentials: 'include'
+            }
+          );
+
+        const datos =
+          await respuesta.json();
+
+        if (respuesta.status === 401) {
+          setAutenticado(false);
+          setUsuario(null);
+          setSolicitudes([]);
+          setTotalRegistros(0);
+          setTotalPaginas(1);
+          return;
+        }
+
+        if (respuesta.status === 403) {
+          setSolicitudes([]);
+          setTotalRegistros(0);
+          setTotalPaginas(1);
+
           throw new Error(
-            'Error cargando solicitudes'
+            datos.error ||
+            'Tu usuario no tiene permisos de administrador.'
           );
         }
 
-        return respuesta.json();
-      })
-      .then((data) => {
+        if (!respuesta.ok) {
+          throw new Error(
+            datos.error ||
+            'No fue posible cargar las solicitudes.'
+          );
+        }
+
+        setAutenticado(true);
+
         setSolicitudes(
-          data.resultados || []
+          datos.resultados || []
         );
 
         setTotalPaginas(
-          data.total_paginas || 1
+          datos.total_paginas || 1
         );
 
         setTotalRegistros(
-          data.total_registros || 0
+          datos.total_registros || 0
         );
-      })
-      .catch((error) => {
+
+      } catch (error) {
         console.error(error);
 
-        setSolicitudes([]);
-        setTotalPaginas(1);
-        setTotalRegistros(0);
-      });
+        setErrorLogin(
+          error.message
+        );
+
+      } finally {
+        setCargando(false);
+      }
+    };
+
+
+  const comprobarSesion =
+    async () => {
+      try {
+        setCargando(true);
+
+        const respuesta =
+          await fetch(
+            `${API_BASE_URL}/api/sesion/`,
+            {
+              method: 'GET',
+              credentials: 'include'
+            }
+          );
+
+        const datos =
+          await respuesta.json();
+
+        if (
+          respuesta.ok &&
+          datos.autenticado
+        ) {
+          setAutenticado(true);
+          setUsuario(datos.usuario);
+
+          await cargarSolicitudes(
+            pagina
+          );
+
+        } else {
+          setAutenticado(false);
+          setUsuario(null);
+        }
+
+      } catch (error) {
+        console.error(error);
+
+        setAutenticado(false);
+        setUsuario(null);
+
+      } finally {
+        setCargando(false);
+      }
+    };
+
+
+  useEffect(() => {
+    comprobarSesion();
+  }, []);
+
+
+  useEffect(() => {
+    if (autenticado) {
+      cargarSolicitudes(pagina);
+    }
   }, [pagina]);
+
+
+  const handleLoginChange = (
+    evento
+  ) => {
+    const {
+      name,
+      value
+    } = evento.target;
+
+    setLoginData(
+      (anterior) => ({
+        ...anterior,
+        [name]: value
+      })
+    );
+  };
+
+
+  const iniciarSesion = async (
+    evento
+  ) => {
+    evento.preventDefault();
+
+    setErrorLogin('');
+
+    try {
+      const csrfToken =
+        await obtenerCsrfToken();
+
+      const respuesta =
+        await fetch(
+          `${API_BASE_URL}/api/login/`,
+          {
+            method: 'POST',
+
+            credentials: 'include',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+
+              'X-CSRFToken':
+                csrfToken
+            },
+
+            body: JSON.stringify({
+              username:
+                loginData.username,
+
+              password:
+                loginData.password
+            })
+          }
+        );
+
+      const datos =
+        await respuesta.json();
+
+      if (!respuesta.ok) {
+        throw new Error(
+          datos.error ||
+          'No fue posible iniciar sesión.'
+        );
+      }
+
+      if (
+        !datos.usuario ||
+        !datos.usuario.es_staff
+      ) {
+        /*
+         * La API de solicitudes exige
+         * un usuario staff.
+         */
+        try {
+          const tokenLogout =
+            await obtenerCsrfToken();
+
+          await fetch(
+            `${API_BASE_URL}/api/logout/`,
+            {
+              method: 'POST',
+
+              credentials: 'include',
+
+              headers: {
+                'X-CSRFToken':
+                  tokenLogout
+              }
+            }
+          );
+        } catch (error) {
+          console.error(error);
+        }
+
+        throw new Error(
+          'El usuario debe tener permisos de administrador.'
+        );
+      }
+
+      setUsuario(
+        datos.usuario
+      );
+
+      setAutenticado(true);
+
+      setLoginData({
+        username: '',
+        password: ''
+      });
+
+      setPagina(1);
+
+      await cargarSolicitudes(1);
+
+    } catch (error) {
+      console.error(error);
+
+      setAutenticado(false);
+      setUsuario(null);
+
+      setErrorLogin(
+        error.message ||
+        'No fue posible iniciar sesión.'
+      );
+    }
+  };
+
+
+  const cerrarSesion =
+    async () => {
+      setErrorLogin('');
+
+      try {
+        const csrfToken =
+          await obtenerCsrfToken();
+
+        const respuesta =
+          await fetch(
+            `${API_BASE_URL}/api/logout/`,
+            {
+              method: 'POST',
+
+              credentials: 'include',
+
+              headers: {
+                'X-CSRFToken':
+                  csrfToken
+              }
+            }
+          );
+
+        const datos =
+          await respuesta.json();
+
+        if (!respuesta.ok) {
+          throw new Error(
+            datos.error ||
+            'No fue posible cerrar sesión.'
+          );
+        }
+
+      } catch (error) {
+        console.error(error);
+
+      } finally {
+        setAutenticado(false);
+        setUsuario(null);
+        setSolicitudes([]);
+        setTotalRegistros(0);
+        setTotalPaginas(1);
+        setPagina(1);
+      }
+    };
+
+
+  if (cargando && !autenticado) {
+    return (
+      <section className="section">
+        <h1 className="title">
+          Solicitudes recibidas
+        </h1>
+
+        <p>
+          Comprobando sesión...
+        </p>
+      </section>
+    );
+  }
+
+
+  if (!autenticado) {
+    return (
+      <section className="section">
+        <h1 className="title">
+          Acceso a Solicitudes
+        </h1>
+
+        <div className="panel">
+          <h2 className="section-title">
+            Iniciar sesión
+          </h2>
+
+          <p>
+            Esta sección está protegida.
+            Ingresa con un usuario
+            administrador.
+          </p>
+
+          {errorLogin && (
+            <div
+              className="error"
+              style={{
+                marginBottom: '20px'
+              }}
+            >
+              {errorLogin}
+            </div>
+          )}
+
+          <form
+            className="form"
+            onSubmit={iniciarSesion}
+          >
+            <label>
+              Usuario:
+            </label>
+
+            <input
+              type="text"
+              name="username"
+              value={
+                loginData.username
+              }
+              onChange={
+                handleLoginChange
+              }
+              autoComplete="username"
+              required
+            />
+
+            <label>
+              Contraseña:
+            </label>
+
+            <input
+              type="password"
+              name="password"
+              value={
+                loginData.password
+              }
+              onChange={
+                handleLoginChange
+              }
+              autoComplete="current-password"
+              required
+            />
+
+            <button
+              className="button"
+              type="submit"
+            >
+              Iniciar sesión
+            </button>
+          </form>
+        </div>
+      </section>
+    );
+  }
 
 
   const numerosPagina = [];
@@ -616,158 +990,269 @@ function Solicitudes() {
         Solicitudes recibidas
       </h1>
 
+
+      <div
+        className="panel"
+        style={{
+          marginBottom: '30px'
+        }}
+      >
+        <p>
+          Sesión iniciada como:{' '}
+          <strong>
+            {usuario?.username ||
+              'Administrador'}
+          </strong>
+        </p>
+
+        <button
+          className="delete-button"
+          type="button"
+          onClick={cerrarSesion}
+        >
+          Cerrar sesión
+        </button>
+      </div>
+
+
+      {errorLogin && (
+        <div
+          className="error"
+          style={{
+            marginBottom: '20px'
+          }}
+        >
+          {errorLogin}
+        </div>
+      )}
+
+
       <p className="counter">
         Total de solicitudes:{' '}
         {totalRegistros}
       </p>
 
 
-      <div className="requests">
-        {solicitudes.map(
-          (solicitud) => (
-            <article
-              key={solicitud.id}
-              className="request-card"
-            >
-              <h3>
-                {solicitud.nombre}
-              </h3>
-
+      {cargando ? (
+        <p>
+          Cargando solicitudes...
+        </p>
+      ) : (
+        <>
+          <div className="requests">
+            {solicitudes.length ===
+              0 && (
               <p>
-                {solicitud.correo}
+                No hay solicitudes
+                registradas.
               </p>
+            )}
 
-              <p>
-                {solicitud.mensaje}
-              </p>
+            {solicitudes.map(
+              (solicitud) => (
+                <article
+                  key={solicitud.id}
+                  className="request-card"
+                >
+                  <h3>
+                    {solicitud.nombre}
+                  </h3>
 
-              <p>
-                Total: $
-                {Number(
-                  solicitud.total_estimado_clp ||
-                  0
-                ).toLocaleString(
-                  'es-CL'
-                )}{' '}
-                CLP
-              </p>
+                  <p>
+                    {solicitud.correo}
+                  </p>
 
-              <a
-                className="detail-link"
-                href={
-                  `/solicitudes/${solicitud.id}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Abrir detalle en nueva pestaña
-              </a>
-            </article>
-          )
-        )}
-      </div>
+                  <p>
+                    {solicitud.mensaje}
+                  </p>
 
+                  <p>
+                    Total: $
+                    {Number(
+                      solicitud.total_estimado_clp ||
+                      0
+                    ).toLocaleString(
+                      'es-CL'
+                    )}{' '}
+                    CLP
+                  </p>
 
-      <div className="pagination">
-        <button
-          type="button"
-          disabled={pagina === 1}
-          onClick={() =>
-            setPagina(
-              (anterior) =>
-                anterior - 1
-            )
-          }
-        >
-          Anterior
-        </button>
+                  <a
+                    className="detail-link"
+                    href={
+                      `/solicitudes/${solicitud.id}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Abrir detalle en nueva pestaña
+                  </a>
+                </article>
+              )
+            )}
+          </div>
 
 
-        {numerosPagina.map(
-          (numero) => (
+          <div className="pagination">
             <button
               type="button"
-              key={numero}
-              className={
-                pagina === numero
-                  ? 'active-page'
-                  : ''
-              }
+              disabled={pagina === 1}
               onClick={() =>
                 setPagina(
-                  numero
+                  (anterior) =>
+                    anterior - 1
                 )
               }
             >
-              {numero}
+              Anterior
             </button>
-          )
-        )}
 
 
-        <button
-          type="button"
-          disabled={
-            pagina === totalPaginas
-          }
-          onClick={() =>
-            setPagina(
-              (anterior) =>
-                anterior + 1
-            )
-          }
-        >
-          Siguiente
-        </button>
-      </div>
+            {numerosPagina.map(
+              (numero) => (
+                <button
+                  type="button"
+                  key={numero}
+                  className={
+                    pagina === numero
+                      ? 'active-page'
+                      : ''
+                  }
+                  onClick={() =>
+                    setPagina(numero)
+                  }
+                >
+                  {numero}
+                </button>
+              )
+            )}
+
+
+            <button
+              type="button"
+              disabled={
+                pagina >= totalPaginas
+              }
+              onClick={() =>
+                setPagina(
+                  (anterior) =>
+                    anterior + 1
+                )
+              }
+            >
+              Siguiente
+            </button>
+          </div>
+        </>
+      )}
     </section>
   );
 }
 
 
 function DetalleSolicitud() {
-  const {
-    id
-  } = useParams();
+  const { id } = useParams();
 
-  const [solicitud, setSolicitud] =
-    useState(null);
+  const [
+    solicitud,
+    setSolicitud
+  ] = useState(null);
 
   const [error, setError] =
     useState('');
 
+  const [cargando, setCargando] =
+    useState(true);
+
 
   useEffect(() => {
-    fetch(
-      `${API_BASE_URL}/api/solicitudes/${id}/`,
-      {
-        credentials: 'include'
-      }
-    )
-      .then((respuesta) => {
-        if (!respuesta.ok) {
-          throw new Error(
-            'Solicitud no encontrada'
-          );
-        }
+    const cargarDetalle =
+      async () => {
+        try {
+          const respuesta =
+            await fetch(
+              `${API_BASE_URL}/api/solicitudes/${id}/`,
+              {
+                method: 'GET',
+                credentials: 'include'
+              }
+            );
 
-        return respuesta.json();
-      })
-      .then((data) => {
-        setSolicitud(data);
-      })
-      .catch(() => {
-        setError(
-          'No se pudo cargar la solicitud.'
-        );
-      });
+          const datos =
+            await respuesta.json();
+
+          if (respuesta.status === 401) {
+            throw new Error(
+              'Debes iniciar sesión para ver esta solicitud.'
+            );
+          }
+
+          if (respuesta.status === 403) {
+            throw new Error(
+              'No tienes permisos para ver esta solicitud.'
+            );
+          }
+
+          if (!respuesta.ok) {
+            throw new Error(
+              datos.error ||
+              'Solicitud no encontrada.'
+            );
+          }
+
+          /*
+           * Compatible tanto con una respuesta
+           * directa como con { resultado: {...} }.
+           */
+          setSolicitud(
+            datos.resultado ||
+            datos.solicitud ||
+            datos
+          );
+
+        } catch (errorDetalle) {
+          console.error(
+            errorDetalle
+          );
+
+          setError(
+            errorDetalle.message ||
+            'No se pudo cargar la solicitud.'
+          );
+
+        } finally {
+          setCargando(false);
+        }
+      };
+
+    cargarDetalle();
   }, [id]);
+
+
+  if (cargando) {
+    return (
+      <div className="section">
+        <h2>
+          Cargando solicitud...
+        </h2>
+      </div>
+    );
+  }
 
 
   if (error) {
     return (
       <div className="section">
-        <h2>{error}</h2>
+        <h2>
+          {error}
+        </h2>
+
+        <Link
+          className="nav-link"
+          to="/solicitudes"
+        >
+          Volver a Solicitudes
+        </Link>
       </div>
     );
   }
@@ -777,7 +1262,7 @@ function DetalleSolicitud() {
     return (
       <div className="section">
         <h2>
-          Cargando solicitud...
+          Solicitud no encontrada.
         </h2>
       </div>
     );
@@ -820,8 +1305,10 @@ function DetalleSolicitud() {
             solicitud.planes_solicitados ||
             []
           ).map(
-            (plan) => (
-              <li key={plan}>
+            (plan, indice) => (
+              <li
+                key={`${plan}-${indice}`}
+              >
                 {plan}
               </li>
             )
@@ -879,7 +1366,9 @@ function App() {
 
           <Route
             path="/solicitudes/:id"
-            element={<DetalleSolicitud />}
+            element={
+              <DetalleSolicitud />
+            }
           />
         </Routes>
       </div>
