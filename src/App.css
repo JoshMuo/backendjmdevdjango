@@ -1,0 +1,412 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #080d18;
+  color: #f5f7ff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.container {
+  width: 100%;
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 18px;
+  background: #0d1424;
+  border-bottom: 1px solid #00e5ff;
+}
+
+.nav-link {
+  color: #00e5ff;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 10px 18px;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+}
+
+.nav-link:hover {
+  background: #00e5ff;
+  color: #08101c;
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
+}
+
+.header {
+  text-align: center;
+  padding: 50px 20px 30px;
+}
+
+.title {
+  color: #00e5ff;
+  text-align: center;
+  text-shadow: 0 0 16px rgba(0, 229, 255, 0.5);
+}
+
+.subtitle {
+  color: #aab8d0;
+  font-size: 1.2rem;
+}
+
+.dolar-banner {
+  max-width: 750px;
+  margin: 20px auto;
+  padding: 24px;
+  border: 1px solid #00f59b;
+  border-radius: 14px;
+  color: #00f59b;
+  font-size: 1.3rem;
+  font-weight: bold;
+  background: #111a2b;
+}
+
+.section {
+  width: min(1300px, 94%);
+  margin: 45px auto;
+}
+
+.section-title {
+  text-align: center;
+  color: #ff008c;
+  margin-bottom: 35px;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(280px, 1fr)
+  );
+  gap: 28px;
+}
+
+.card,
+.request-card,
+.panel {
+  background: #111a2b;
+  border: 1px solid #00e5ff;
+  border-radius: 14px;
+  padding: 30px;
+}
+
+/* =========================================
+   EFECTO HOVER DE LAS TARJETAS DE PLANES
+   ========================================= */
+
+.card {
+  position: relative;
+  text-align: center;
+  overflow: hidden;
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease;
+
+  cursor: default;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+
+  top: -60%;
+  left: -100%;
+
+  width: 70%;
+  height: 220%;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 229, 255, 0.12),
+    transparent
+  );
+
+  transform: rotate(20deg);
+
+  transition: left 0.6s ease;
+
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-12px) scale(1.025);
+
+  border-color: #00f59b;
+
+  background: #121e31;
+
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(0, 229, 255, 0.28),
+    0 0 35px rgba(0, 245, 155, 0.12);
+}
+
+.card:hover::before {
+  left: 150%;
+}
+
+.card h3 {
+  position: relative;
+  z-index: 2;
+
+  color: #00e5ff;
+  font-size: 1.5rem;
+
+  transition:
+    color 0.3s ease,
+    text-shadow 0.3s ease;
+}
+
+.card:hover h3 {
+  color: #00f59b;
+
+  text-shadow:
+    0 0 10px rgba(0, 245, 155, 0.5);
+}
+
+.card p,
+.card .usd,
+.card button {
+  position: relative;
+  z-index: 2;
+}
+
+.usd {
+  color: #00f59b;
+  font-size: 1.7rem;
+  font-weight: bold;
+  margin: 20px 0;
+
+  transition:
+    transform 0.3s ease,
+    text-shadow 0.3s ease;
+}
+
+.card:hover .usd {
+  transform: scale(1.08);
+
+  text-shadow:
+    0 0 14px rgba(0, 245, 155, 0.5);
+}
+
+/* =========================================
+   BOTONES
+   ========================================= */
+
+.button {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  padding: 14px;
+  background: #00f59b;
+  color: #05130e;
+  cursor: pointer;
+  font-weight: bold;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 0 18px rgba(0, 245, 155, 0.45);
+
+  opacity: 0.95;
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+/* =========================================
+   PLANES SELECCIONADOS
+   ========================================= */
+
+.selected-plan {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  margin-bottom: 12px;
+  background: #09111f;
+  border-radius: 8px;
+}
+
+.delete-button {
+  background: #ff3268;
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+/* =========================================
+   FORMULARIO
+   ========================================= */
+
+.form {
+  display: grid;
+  gap: 15px;
+}
+
+.form label {
+  color: #00e5ff;
+  font-weight: bold;
+}
+
+.form input,
+.form textarea {
+  width: 100%;
+  padding: 14px;
+  color: white;
+  background: #08101c;
+  border: 1px solid #34425d;
+  border-radius: 8px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.form input:focus,
+.form textarea:focus {
+  outline: none;
+
+  border-color: #00e5ff;
+
+  box-shadow:
+    0 0 12px rgba(0, 229, 255, 0.2);
+}
+
+.success {
+  padding: 18px;
+  margin-bottom: 25px;
+  text-align: center;
+  color: #00f59b;
+  border: 1px solid #00f59b;
+  border-radius: 8px;
+  background: #07372e;
+}
+
+/* =========================================
+   SOLICITUDES
+   ========================================= */
+
+.counter {
+  text-align: center;
+  color: #aab8d0;
+  margin-bottom: 30px;
+}
+
+.requests {
+  display: grid;
+  gap: 20px;
+}
+
+.request-card h3 {
+  color: #00e5ff;
+}
+
+.detail-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: #00f59b;
+  font-weight: bold;
+}
+
+/* =========================================
+   PAGINACIÓN
+   ========================================= */
+
+.pagination {
+  margin-top: 35px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pagination button {
+  min-width: 44px;
+  padding: 10px 14px;
+  border: 1px solid #00e5ff;
+  border-radius: 7px;
+  background: #111a2b;
+  color: white;
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #00e5ff;
+  color: #07111c;
+  transform: translateY(-2px);
+}
+
+.pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pagination .active-page {
+  background: #ff008c;
+  border-color: #ff008c;
+  color: white;
+}
+
+.detail-page {
+  max-width: 850px;
+}
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 700px) {
+  .nav {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .dolar-banner {
+    width: 92%;
+  }
+
+  .section {
+    width: 94%;
+  }
+
+  .card:hover {
+    transform: translateY(-6px) scale(1.01);
+  }
+}

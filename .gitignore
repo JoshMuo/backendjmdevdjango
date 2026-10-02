@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entorno virtual
+venv/
+.venv/
+
+# Variables privadas
+.env
+
+# SQLite antiguo
+db.sqlite3
+
+# Node
+node_modules/
+dist/
+
+# VS Code
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
